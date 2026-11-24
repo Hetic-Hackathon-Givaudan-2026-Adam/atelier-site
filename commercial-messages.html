@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Messages — Espace commercial</title>
+  <meta name="description" content="Vue interne Givaudan : les conversations de Claire Martin avec ses clients, avec le rappel de chaque projet. Prototype hackathon HETIC × Givaudan 2026." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/account.css" />
+  <link rel="stylesheet" href="css/commandes.css" />
+  <link rel="stylesheet" href="css/commercial.css" />
+  <link rel="stylesheet" href="css/messages.css" />
+  <link rel="stylesheet" href="css/commercial-messages.css" />
+</head>
+<body class="account-page commercial-page sales-messages-page">
+  <header class="site-header is-solid sales-header">
+    <div class="sales-brand">
+      <a href="espace-commercial" class="brand">Givaudan Atelier</a>
+      <span class="sales-label">Espace commercial</span>
+    </div>
+    <nav class="sales-tabs" aria-label="Espace commercial">
+      <a href="espace-commercial" class="nav-link">Projets</a>
+      <a href="commercial-messages" class="nav-link nav-messages sales-tab-msg" aria-current="page">Messages<span class="nav-badge" hidden></span></a>
+    </nav>
+    <div class="sales-user">
+      <span class="sales-avatar" aria-hidden="true">CM</span>
+      <span class="sales-who"><strong>Claire Martin</strong> · Responsable de compte</span>
+      <a href="mes-projets" class="sales-switch">Voir l'espace client</a>
+    </div>
+  </header>
+
+  <main class="space" id="contenu">
+    <div class="space-inner">
+      <p class="sales-banner rise" role="note">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+        Vue interne Givaudan — démonstration. Le score de potentiel n'est jamais visible par le client.
+      </p>
+
+      <div class="smsg-layout" id="smsg-layout">
+        <!-- ================= Inbox ================= -->
+        <section class="inbox rise" aria-labelledby="inbox-title">
+          <h1 class="space-title inbox-title" id="inbox-title">Vos <em>messages</em>.</h1>
+          <label class="sr-only" for="inbox-search">Rechercher un client ou un projet</label>
+          <input class="lead-search inbox-search" id="inbox-search" type="search" placeholder="Rechercher un client ou un projet" autocomplete="off" />
+          <div class="chips inbox-filters" role="group" aria-label="Filtrer les conversations">
+            <button type="button" class="chip is-active" data-ifilter="all" aria-pressed="true">Tous</button>
+            <button type="button" class="chip" data-ifilter="unread" aria-pressed="false">Non lus</button>
+            <button type="button" class="chip" data-ifilter="answer" aria-pressed="false">À répondre</button>
+          </div>
+          <p class="sr-only" id="inbox-status" aria-live="polite"></p>
+          <ul class="inbox-list" id="inbox-list" role="list"></ul>
+          <p class="inbox-empty" id="inbox-empty" hidden>Aucune conversation dans cette catégorie.</p>
+        </section>
+
+        <!-- ================= Conversation ================= -->
+        <section class="sconv" id="sconv" aria-labelledby="sconv-title" tabindex="-1">
+          <p class="sconv-placeholder" id="sconv-placeholder">Sélectionnez une conversation.</p>
+          <div class="sconv-body" id="sconv-body" hidden>
+            <button type="button" class="link-btn sconv-back" id="sconv-back"><span aria-hidden="true">← </span>Messages</button>
+            <h2 class="sconv-title" id="sconv-title"></h2>
+            <div id="recall"></div>
+            <ol class="conv sconv-list" id="sconv-list" aria-label="Messages de la conversation"></ol>
+            <p class="sr-only" id="sconv-live" aria-live="polite"></p>
+            <form class="mcomposer scomposer" id="scomposer" autocomplete="off">
+              <div class="chips quick-replies" role="group" aria-label="Réponses rapides">
+                <button type="button" class="chip" data-quick="feedback">Relancer pour un avis</button>
+                <button type="button" class="chip" data-quick="meeting">Proposer un rendez-vous</button>
+                <button type="button" class="chip" data-quick="ack">Confirmer la réception</button>
+              </div>
+              <div class="mcomposer-row">
+                <label class="sr-only" for="s-text" id="s-text-label">Votre réponse</label>
+                <textarea class="mcomposer-input" id="s-text" rows="2"></textarea>
+                <button class="btn btn-primary btn-small mcomposer-send" type="submit" disabled>Envoyer</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+  <footer class="site-footer">
+    <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026 · Vue interne</p>
+  </footer>
+
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/scenario.js"></script>
+  <script src="js/assistant.js"></script>
+  <script src="js/brief-import.js"></script>
+  <script src="js/sales-data.js"></script>
+  <script src="js/commercial-messages.js"></script>
+</body>
+</html>

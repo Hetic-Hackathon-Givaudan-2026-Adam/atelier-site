@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr" data-protected>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brief — Givaudan Atelier</title>
+  <meta name="description" content="Le brief de votre projet de fragrance, tel que transmis à nos experts. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/account.css" />
+  <link rel="stylesheet" href="css/brief.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body class="account-page brief-page">
+  <header class="site-header is-solid">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link">Mes projets</a>
+      <a href="commandes" class="nav-link">Mes commandes</a>
+      <a href="connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <main class="space" id="contenu">
+    <div class="space-inner doc-inner">
+      <a href="mes-projets" class="studio-back doc-back"><span aria-hidden="true">← </span>Mes projets</a>
+      <!-- filled by js/brief.js -->
+      <article class="doc" id="doc" aria-live="polite"></article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026</p>
+  </footer>
+
+  <script src="js/ui.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/brief.js"></script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr" data-protected>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mes projets — Givaudan Atelier</title>
+  <meta name="description" content="Votre espace Givaudan Atelier : projets de fragrance, commandes et interlocuteur dédié. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/account.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body class="account-page">
+  <header class="site-header is-solid">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link" aria-current="page">Mes projets</a>
+      <a href="commandes" class="nav-link">Mes commandes</a>
+      <a href="connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <main class="space" id="contenu">
+    <div class="space-inner" id="space">
+
+      <!-- ================= Client existant ================= -->
+      <section class="welcome rise" data-mode="client" aria-labelledby="welcome-title">
+        <div>
+          <span class="eyebrow">Espace client</span>
+          <h1 class="space-title" id="welcome-title">Bonjour <em data-first-name>Mira</em>.</h1>
+          <p class="space-sub">Reprenez un projet ou commencez-en un nouveau.</p>
+        </div>
+        <a href="creer-projet" class="btn btn-primary">Créer un projet</a>
+      </section>
+
+      <div class="dash" data-mode="client">
+        <!-- Projets -->
+        <section class="projects rise" style="--d: 0.1s" aria-labelledby="projects-title">
+          <div class="block-head">
+            <h2 class="block-title" id="projects-title">Mes projets</h2>
+            <div class="chips" role="group" aria-label="Filtrer les projets">
+              <button type="button" class="chip is-active" data-filter="active" aria-pressed="true">En cours <span class="chip-count">3</span></button>
+              <button type="button" class="chip" data-filter="done" aria-pressed="false">Terminés <span class="chip-count">1</span></button>
+            </div>
+          </div>
+          <p class="sr-only" id="projects-status" aria-live="polite"></p>
+
+          <ul class="project-list" role="list">
+            <!-- rendered by js/projets.js from Store.listProjects(): samples + saved projects merged by id -->
+          </ul>
+        </section>
+
+        <!-- Colonne latérale : interlocutrice dédiée -->
+        <aside class="side side--contact" aria-label="Votre interlocutrice dédiée">
+          <section class="side-card contact rise" style="--d: 0.2s" data-contact="claire" aria-labelledby="contact-title">
+            <h2 class="side-title" id="contact-title">Votre interlocutrice dédiée</h2>
+            <div class="contact-person">
+              <span class="contact-avatar" aria-hidden="true">CM</span>
+              <div>
+                <p class="contact-name">Claire Martin</p>
+                <p class="contact-role">Responsable de compte, Fragrance &amp; Beauty</p>
+              </div>
+            </div>
+            <p class="contact-line">Votre contact pour vos projets et commandes.</p>
+            <p class="contact-availability"><span class="contact-dot" aria-hidden="true"></span>Disponible aujourd’hui · répond sous 24 h</p>
+            <div class="contact-actions">
+              <a href="messages" class="btn btn-accent-outline btn-small">Contacter<span class="sr-only"> Claire Martin</span></a>
+              <button type="button" class="btn btn-outline btn-small" data-contact-open="meeting" aria-expanded="false" aria-controls="contact-panel">Prendre rendez-vous</button>
+            </div>
+            <div class="contact-panel" id="contact-panel" hidden></div>
+          </section>
+        </aside>
+      </div>
+
+      <!-- ================= Nouveau client ================= -->
+      <section class="onboarding" data-mode="new" aria-labelledby="onboarding-title" hidden>
+        <div class="welcome welcome--new rise">
+          <div>
+            <span class="eyebrow">Nouveau compte</span>
+            <h1 class="space-title" id="onboarding-title">Bienvenue dans l'<em>Atelier</em>, <span data-first-name>Mira</span>.</h1>
+            <p class="space-sub">Créez votre premier projet : nous vous guidons pas à pas.</p>
+            <a href="creer-projet" class="btn btn-primary btn-large">Créer mon premier projet</a>
+          </div>
+        </div>
+        <ol class="guide" role="list">
+          <li class="guide-step rise" style="--d: 0.1s">
+            <span class="guide-num" aria-hidden="true">01</span>
+            <h2 class="guide-title">Décrivez votre projet</h2>
+            <p>Parlez-nous de votre produit et de l'ambiance souhaitée.</p>
+          </li>
+          <li class="guide-step rise" style="--d: 0.2s">
+            <span class="guide-num" aria-hidden="true">02</span>
+            <h2 class="guide-title">Découvrez vos assemblages</h2>
+            <p>Nous vous proposons des fragrances adaptées.</p>
+          </li>
+          <li class="guide-step rise" style="--d: 0.3s">
+            <span class="guide-num" aria-hidden="true">03</span>
+            <h2 class="guide-title">Recevez votre échantillon</h2>
+            <p>Testez-le, ou échangez avec un de nos experts.</p>
+          </li>
+        </ol>
+        <section class="side-card contact contact--team rise" style="--d: 0.4s" data-contact="team" aria-labelledby="team-title">
+          <h2 class="side-title" id="team-title">Une question ?</h2>
+          <p class="contact-line">Notre équipe vous répond sous 24 h, du lundi au vendredi.</p>
+          <div class="contact-actions">
+            <a href="messages" class="btn btn-accent-outline btn-small">Nous contacter</a>
+          </div>
+          <div class="contact-panel" id="team-panel" hidden></div>
+        </section>
+      </section>
+
+      <!-- ================= Mode démo ================= -->
+      <div class="demo" role="group" aria-labelledby="demo-label">
+        <span class="demo-label" id="demo-label">Mode démo :</span>
+        <div class="demo-switch">
+          <button type="button" data-demo="client" aria-pressed="true">Client existant</button>
+          <button type="button" data-demo="new" aria-pressed="false">Nouveau client</button>
+        </div>
+        <span class="demo-sep" aria-hidden="true"></span>
+        <button type="button" class="demo-reset" id="demo-reset" aria-haspopup="dialog">Réinitialiser la démo</button>
+        <span class="demo-sep" aria-hidden="true"></span>
+        <button type="button" class="api-pill" data-api-pill>Mode simulation</button>
+        <span class="demo-sep" aria-hidden="true"></span>
+        <a href="espace-commercial" class="demo-reset demo-givaudan">Voir la démo côté Givaudan →</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Confirmation: réinitialiser la démo (same style as the sign-in modal) -->
+  <div class="modal modal--small" id="reset-modal" hidden>
+    <div class="modal-backdrop" data-reset-close></div>
+    <div class="modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-text" tabindex="-1">
+      <button class="modal-close" type="button" aria-label="Fermer" data-reset-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <span class="eyebrow">Mode démo</span>
+      <h2 id="reset-title" class="modal-title">Réinitialiser la <em>démo</em> ?</h2>
+      <p id="reset-text" class="modal-text">Les projets et commandes créés pendant les tests seront effacés.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="reset-confirm">Réinitialiser</button>
+        <button type="button" class="btn btn-outline" data-reset-close>Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+  <footer class="site-footer">
+    <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026</p>
+  </footer>
+
+  <script src="js/ui.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/projets.js"></script>
+  <script src="js/contact.js"></script>
+</body>
+</html>

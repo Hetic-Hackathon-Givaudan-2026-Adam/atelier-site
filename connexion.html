@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connexion — Givaudan Atelier</title>
+  <meta name="description" content="Connectez-vous ou créez votre compte Givaudan Atelier. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body class="auth-page">
+  <!-- Header (identique à l'accueil) -->
+  <header class="site-header">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link" data-auth-next="mes-projets">Mes projets</a>
+      <a href="commandes" class="nav-link" data-auth-next="commandes">Mes commandes</a>
+      <a href="#connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <main class="auth">
+    <!-- Visuel -->
+    <aside class="auth-visual" aria-hidden="true">
+      <img src="frames/frame_0121.webp" alt="" width="1680" height="1076" decoding="async" fetchpriority="high" />
+      <p class="auth-quote">Chaque fragrance commence par une <em>intention</em>.</p>
+    </aside>
+
+    <!-- Formulaires -->
+    <section class="auth-panel">
+      <div class="auth-card">
+
+        <!-- ============ Connexion ============ -->
+        <div class="auth-view" id="view-login" data-view="login">
+          <span class="eyebrow">Espace client</span>
+          <h1 class="auth-title" tabindex="-1">Bon <em>retour</em>.</h1>
+          <p class="auth-sub">Connectez-vous à votre espace Givaudan Atelier.</p>
+
+          <form class="auth-form" id="form-login" novalidate>
+            <div class="field">
+              <label for="login-email">Email professionnel</label>
+              <input class="input" type="email" id="login-email" name="email" autocomplete="email" inputmode="email" required data-label="votre email professionnel" />
+              <p class="field-error" id="login-email-error" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="login-password">Mot de passe</label>
+                <a href="#" class="text-link small">Mot de passe oublié ?</a>
+              </div>
+              <div class="password">
+                <input class="input" type="password" id="login-password" name="password" autocomplete="current-password" required data-label="votre mot de passe" />
+                <button type="button" class="password-toggle" aria-controls="login-password" aria-pressed="false" aria-label="Afficher le mot de passe">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 5.6A10.8 10.8 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.2 4M6.3 6.9C3.6 8.6 2 12 2 12s3.6 6.5 10 6.5a9.8 9.8 0 0 0 4.4-1" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+                </button>
+              </div>
+              <p class="field-error" id="login-password-error" aria-live="polite"></p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+              <span class="btn-label">Se connecter</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <p class="auth-switch">Pas encore de compte ? <a href="#inscription" class="text-link">Créer un compte</a></p>
+        </div>
+
+        <!-- ============ Inscription ============ -->
+        <div class="auth-view" id="view-signup" data-view="signup" hidden>
+          <span class="eyebrow">Nouveau compte</span>
+          <h1 class="auth-title" tabindex="-1">Rejoignez l'<em>Atelier</em>.</h1>
+          <p class="auth-sub">Créez votre compte gratuitement, en quelques secondes.</p>
+
+          <form class="auth-form" id="form-signup" novalidate>
+            <div class="field-row">
+              <div class="field">
+                <label for="su-firstname">Prénom</label>
+                <input class="input" type="text" id="su-firstname" name="firstname" autocomplete="given-name" required data-label="votre prénom" />
+                <p class="field-error" id="su-firstname-error" aria-live="polite"></p>
+              </div>
+              <div class="field">
+                <label for="su-lastname">Nom</label>
+                <input class="input" type="text" id="su-lastname" name="lastname" autocomplete="family-name" required data-label="votre nom" />
+                <p class="field-error" id="su-lastname-error" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="su-email">Email professionnel</label>
+              <input class="input" type="email" id="su-email" name="email" autocomplete="email" inputmode="email" required data-label="votre email professionnel" />
+              <p class="field-error" id="su-email-error" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="su-company">Entreprise</label>
+              <input class="input" type="text" id="su-company" name="company" autocomplete="organization" required data-label="le nom de votre entreprise" />
+              <p class="field-error" id="su-company-error" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="su-country">Pays</label>
+              <div class="select">
+                <select class="input" id="su-country" name="country" autocomplete="country-name" required data-label="votre pays">
+                  <option value="Allemagne">Allemagne</option>
+                  <option value="Belgique">Belgique</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Espagne">Espagne</option>
+                  <option value="États-Unis">États-Unis</option>
+                  <option value="France" selected>France</option>
+                  <option value="Italie">Italie</option>
+                  <option value="Luxembourg">Luxembourg</option>
+                  <option value="Maroc">Maroc</option>
+                  <option value="Pays-Bas">Pays-Bas</option>
+                  <option value="Portugal">Portugal</option>
+                  <option value="Royaume-Uni">Royaume-Uni</option>
+                  <option value="Suisse">Suisse</option>
+                  <option value="Autre">Autre pays</option>
+                </select>
+              </div>
+              <p class="field-error" id="su-country-error" aria-live="polite"></p>
+            </div>
+
+            <div class="field">
+              <label for="su-password">Mot de passe</label>
+              <div class="password">
+                <input class="input" type="password" id="su-password" name="password" autocomplete="new-password" required minlength="8" aria-describedby="su-password-hint" data-label="un mot de passe" />
+                <button type="button" class="password-toggle" aria-controls="su-password" aria-pressed="false" aria-label="Afficher le mot de passe">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 5.6A10.8 10.8 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.2 4M6.3 6.9C3.6 8.6 2 12 2 12s3.6 6.5 10 6.5a9.8 9.8 0 0 0 4.4-1" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+                </button>
+              </div>
+              <p class="hint" id="su-password-hint">8 caractères minimum</p>
+              <p class="field-error" id="su-password-error" aria-live="polite"></p>
+            </div>
+
+            <div class="field field-check">
+              <label class="check">
+                <input type="checkbox" id="su-client" name="client" aria-controls="su-client-extra" aria-expanded="false" />
+                <span>Je suis déjà client Givaudan</span>
+              </label>
+              <div class="collapsible" id="su-client-extra" hidden>
+                <div class="collapsible-inner">
+                  <div class="field">
+                    <label for="su-client-number">Numéro client <span class="optional">(facultatif)</span></label>
+                    <input class="input" type="text" id="su-client-number" name="clientNumber" autocomplete="off" aria-describedby="su-client-help" />
+                    <p class="hint" id="su-client-help">Nous relierons votre compte à votre historique et à votre interlocuteur dédié.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field field-check">
+              <label class="check">
+                <input type="checkbox" id="su-gdpr" name="gdpr" required aria-describedby="su-gdpr-note" />
+                <span>J'accepte que Givaudan traite mes données pour gérer mon compte et répondre à mes demandes. <a href="#" class="text-link">En savoir plus</a></span>
+              </label>
+              <p class="field-error" id="su-gdpr-error" aria-live="polite"></p>
+              <p class="reassure" id="su-gdpr-note">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>
+                Vos données restent confidentielles et ne sont jamais revendues.
+              </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+              <span class="btn-label">Créer mon compte</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <p class="auth-switch">Déjà un compte ? <a href="#connexion" class="text-link">Se connecter</a></p>
+        </div>
+
+        <!-- ============ Succès ============ -->
+        <div class="auth-view auth-success" id="view-success" hidden>
+          <span class="success-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+          </span>
+          <h1 class="auth-title" tabindex="-1" id="success-title"></h1>
+          <p class="auth-sub" id="success-text"></p>
+          <a href="mes-projets" class="btn btn-primary" id="success-cta">Accéder à mon espace</a>
+          <p class="prototype-note" id="success-note" aria-live="polite">Redirection vers votre espace… (prototype : aucune donnée n'a été envoyée)</p>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

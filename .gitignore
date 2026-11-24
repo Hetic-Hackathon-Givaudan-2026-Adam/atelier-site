@@ -1,0 +1,12 @@
+# Local tooling
+node_modules/
+.claude/
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# Misc
+.DS_Store
+*.log
+logs/

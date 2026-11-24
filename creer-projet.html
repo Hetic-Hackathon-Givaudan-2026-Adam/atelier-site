@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr" data-protected>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Créer un projet — Givaudan Atelier</title>
+  <meta name="description" content="Décrivez votre projet de fragrance à L'Atelier et découvrez trois assemblages sélectionnés pour vous. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/account.css" />
+  <link rel="stylesheet" href="css/projet.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body class="account-page studio-page">
+  <header class="site-header is-solid">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link">Mes projets</a>
+      <a href="commandes" class="nav-link">Mes commandes</a>
+      <a href="connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <main class="studio" id="contenu">
+    <div class="studio-bar">
+      <a href="mes-projets" class="studio-back"><span aria-hidden="true">← </span>Mes projets</a>
+      <button type="button" class="studio-restart" id="restart">Recommencer</button>
+    </div>
+
+    <div class="studio-grid">
+      <!-- ================= Conversation ================= -->
+      <section class="convo" aria-labelledby="convo-title">
+        <h1 class="sr-only" id="convo-title">Créer un projet avec L'Atelier</h1>
+        <div class="thread" id="thread"></div>
+        <!-- new assistant messages are read here (the thread itself is not live, to avoid reading the chips) -->
+        <p class="sr-only" id="announcer" aria-live="polite"></p>
+
+        <form class="composer" id="composer" autocomplete="off">
+          <label class="sr-only" for="composer-input">Votre réponse</label>
+          <input class="composer-input" id="composer-input" type="text" placeholder="Décrivez votre projet…" />
+          <button class="composer-send" type="submit" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+      </section>
+
+      <!-- ================= Votre projet ================= -->
+      <aside class="brief" aria-labelledby="brief-title">
+        <button type="button" class="brief-toggle" id="brief-toggle" aria-expanded="false" aria-controls="brief-body">
+          <span>Votre projet <span class="brief-count" id="brief-count">· 0 élément</span></span>
+          <svg class="brief-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <div class="brief-card" id="brief-body">
+          <h2 class="brief-title" id="brief-title">Votre projet <em>prend forme</em>.</h2>
+
+          <ol class="brief-steps" aria-label="Étapes du projet">
+            <li data-stage="0"><span class="brief-step-dot" aria-hidden="true"></span>Votre projet</li>
+            <li data-stage="1"><span class="brief-step-dot" aria-hidden="true"></span>Vos envies</li>
+            <li data-stage="2"><span class="brief-step-dot" aria-hidden="true"></span>Vos assemblages</li>
+            <li data-stage="3"><span class="brief-step-dot" aria-hidden="true"></span>Échantillon</li>
+          </ol>
+
+          <dl class="brief-fields" id="brief-fields">
+            <div class="field" data-field="product"><dt>Produit</dt><dd></dd></div>
+            <div class="field" data-field="target"><dt>Cible</dt><dd></dd></div>
+            <div class="field" data-field="ambiance"><dt>Ambiance</dt><dd></dd></div>
+            <div class="field field--notes" data-field="notes"><dt>Notes pressenties</dt><dd></dd></div>
+            <div class="field" data-field="constraints"><dt>Exigences</dt><dd></dd></div>
+            <div class="field" data-field="intensity"><dt>Intensité</dt><dd></dd></div>
+            <div class="field" data-field="market"><dt>Marché</dt><dd></dd></div>
+            <div class="field" data-field="volume"><dt>Volume</dt><dd></dd></div>
+            <div class="field" data-field="launch"><dt>Lancement</dt><dd></dd></div>
+          </dl>
+
+          <p class="brief-note">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+            Vos informations restent confidentielles.
+          </p>
+          <p class="brief-status"><button type="button" class="api-pill api-pill--small" data-api-pill>Mode simulation</button></p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="js/ui.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/scenario.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/assistant.js"></script>
+  <script src="js/brief-import.js"></script>
+  <script src="js/creer-projet.js"></script>
+</body>
+</html>

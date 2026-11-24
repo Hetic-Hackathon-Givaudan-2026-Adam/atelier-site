@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Givaudan Atelier — L'assemblage de votre fragrance</title>
+  <meta name="description" content="Givaudan Atelier : décrivez votre projet de fragrance (parfumerie fine, soin, beauté, hygiène, maison, linge), nous révélons son assemblage. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body>
+  <!-- Loader -->
+  <div id="loader" aria-hidden="true">
+    <div class="loader-inner">
+      <span class="loader-brand">Givaudan <em>Atelier</em></span>
+      <div class="loader-track"><div id="loader-bar"></div></div>
+      <span id="loader-percent">0 %</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link" data-auth-next="mes-projets">Mes projets</a>
+      <a href="commandes" class="nav-link" data-auth-next="commandes">Mes commandes</a>
+      <a href="connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <!-- Modale : accès réservé -->
+  <div class="modal" id="auth-modal" hidden>
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-describedby="auth-modal-text" tabindex="-1">
+      <button class="modal-close" type="button" aria-label="Fermer" data-modal-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <span class="eyebrow">Espace client</span>
+      <h2 id="auth-modal-title" class="modal-title">Connectez-vous pour accéder à votre <em>espace</em></h2>
+      <p id="auth-modal-text" class="modal-text">Retrouvez vos projets, vos demandes d'échantillons et le suivi de vos commandes.</p>
+      <div class="modal-actions">
+        <a href="connexion#connexion" class="btn btn-primary" data-auth-login>Se connecter</a>
+        <a href="connexion#inscription" class="btn btn-outline" data-auth-signup>Créer un compte gratuit</a>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Scroll-driven stage -->
+    <section id="scroll-container" aria-label="Découverte de l'assemblage">
+      <div class="stage">
+        <canvas id="canvas" aria-hidden="true"></canvas>
+        <div class="stage-fade" aria-hidden="true"></div>
+
+        <div class="copy">
+          <!-- 1. Bouteille fermée -->
+          <div class="step step-hero" data-enter="0" data-leave="8">
+            <h1 class="display">Chaque fragrance commence par une <em>intention</em>.</h1>
+            <ul class="categories" aria-label="Applications">
+              <li>Parfumerie fine</li><li>Soin du corps</li><li>Beauté</li><li>Hygiène</li><li>Maison</li><li>Linge</li>
+            </ul>
+            <p class="scroll-hint"><span class="hint-line" aria-hidden="true"></span>Défilez pour découvrir</p>
+          </div>
+
+          <!-- 2. Ouverture -->
+          <div class="step step-reveal" data-enter="13" data-leave="35">
+            <span class="eyebrow">L'atelier</span>
+            <h2 class="headline">Décrivez votre projet. Nous révélons son <em>assemblage</em>.</h2>
+          </div>
+
+          <!-- 3. Disques : notes -->
+          <div class="step step-notes" data-enter="47" data-leave="82">
+            <ul class="notes">
+              <li class="note" data-disc="0">
+                <span class="note-rule" aria-hidden="true"></span>
+                <span class="note-text"><span class="note-title">Notes de tête</span><span class="note-items">Bergamote, citron</span></span>
+              </li>
+              <li class="note" data-disc="1">
+                <span class="note-rule" aria-hidden="true"></span>
+                <span class="note-text"><span class="note-title">Notes de cœur</span><span class="note-items">Jasmin, rose</span></span>
+              </li>
+              <li class="note" data-disc="2">
+                <span class="note-rule" aria-hidden="true"></span>
+                <span class="note-text"><span class="note-title">Notes de fond</span><span class="note-items">Vanille, santal</span></span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 4. Fin : appels à l'action -->
+          <div class="step step-cta" data-enter="86" data-leave="100" data-persist="true">
+            <span class="eyebrow">Co-création</span>
+            <h2 class="headline">Co-créons votre <em>fragrance</em>.</h2>
+            <div class="cta-row">
+              <a href="creer-projet" class="btn btn-primary" data-auth-next="creer-projet">Créer un projet</a>
+              <a href="commandes#recommander" class="btn btn-outline" data-auth-next="commandes" data-auth-hash="recommander" data-auth-intent="reorder">Recommander une référence</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Explorer l'Atelier -->
+    <section class="explore" id="explorer" aria-labelledby="explore-title">
+      <div class="explore-head">
+        <h2 id="explore-title" class="section-title reveal">Explorer l'<em>Atelier</em></h2>
+        <p class="section-sub reveal">Découvrez quelques assemblages disponibles, sans créer de compte.</p>
+      </div>
+      <div class="chips reveal" role="group" aria-label="Filtrer par famille olfactive">
+        <button type="button" class="chip is-active" data-filter="all" aria-pressed="true">Tous</button>
+        <button type="button" class="chip" data-filter="frais" aria-pressed="false">Frais</button>
+        <button type="button" class="chip" data-filter="floral" aria-pressed="false">Floral</button>
+        <button type="button" class="chip" data-filter="boise" aria-pressed="false">Boisé</button>
+        <button type="button" class="chip" data-filter="gourmand" aria-pressed="false">Gourmand</button>
+        <button type="button" class="chip" data-filter="ambre" aria-pressed="false">Ambré</button>
+        <button type="button" class="chip" data-filter="aromatique" aria-pressed="false">Aromatique</button>
+      </div>
+      <p class="sr-only" id="explore-status" aria-live="polite"></p>
+      <ul class="cards" role="list">
+        <li class="card reveal" data-family="frais">
+          <span class="card-dot card-dot--frais" aria-hidden="true"></span>
+          <span class="card-family">Frais</span>
+          <h3 class="card-name">Brise de Calabre</h3>
+          <p class="card-blend">Bergamote de Calabre · Néroli · Thé vert</p>
+          <p class="card-desc">Fraîcheur méditerranéenne pétillante et très propre.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> gel douche, shampoing, eau de Cologne</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+        <li class="card reveal" data-family="floral">
+          <span class="card-dot card-dot--floral" aria-hidden="true"></span>
+          <span class="card-family">Floral</span>
+          <h3 class="card-name">Jardin de Grasse</h3>
+          <p class="card-blend">Rose centifolia · Pivoine · Patchouli</p>
+          <p class="card-desc">Un bouquet de roses fraîchement cueillies, féminin et élégant.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> parfum fin, crème corps, bougie</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+        <li class="card reveal" data-family="boise">
+          <span class="card-dot card-dot--boise" aria-hidden="true"></span>
+          <span class="card-family">Boisé</span>
+          <h3 class="card-name">Cèdre de l'Atlas</h3>
+          <p class="card-blend">Cèdre de l'Atlas · Cyprès · Vétiver</p>
+          <p class="card-desc">Un boisé sec et franc, droit et rassurant.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> gel douche, déodorant, parfum fin</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+        <li class="card reveal" data-family="gourmand">
+          <span class="card-dot card-dot--gourmand" aria-hidden="true"></span>
+          <span class="card-family">Gourmand</span>
+          <h3 class="card-name">Passion des Îles</h3>
+          <p class="card-blend">Vanille de Madagascar · Fruit de la passion · Lait de coco</p>
+          <p class="card-desc">Une escapade tropicale gourmande et ensoleillée.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> gel douche, crème corps, bougie</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+        <li class="card reveal" data-family="ambre">
+          <span class="card-dot card-dot--ambre" aria-hidden="true"></span>
+          <span class="card-family">Ambré</span>
+          <h3 class="card-name">Ambre Doré</h3>
+          <p class="card-blend">Benjoin · Labdanum · Vanille</p>
+          <p class="card-desc">Un ambre chaud et enveloppant.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> bougie, parfum fin, huile corps</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+        <li class="card reveal" data-family="aromatique">
+          <span class="card-dot card-dot--aromatique" aria-hidden="true"></span>
+          <span class="card-family">Aromatique</span>
+          <h3 class="card-name">Lavande de Provence</h3>
+          <p class="card-blend">Lavande · Romarin · Fève tonka</p>
+          <p class="card-desc">Un aromatique provençal, apaisant et intemporel.</p>
+          <p class="card-uses"><span class="card-uses-label">Idéal pour :</span> lessive, savon, gel douche, diffuseur</p>
+          <a href="#" class="card-link">Partir de cet assemblage <span aria-hidden="true">→</span></a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Bénéfices -->
+    <section class="benefits" aria-labelledby="benefits-title">
+      <h2 id="benefits-title" class="benefits-title reveal">Une nouvelle façon de <em>créer</em>.</h2>
+      <p class="benefits-intro reveal">Du parfum au savon, de la bougie à la lessive : rendre le quotidien <em>extraordinaire</em>.</p>
+      <div class="benefits-grid">
+        <article class="benefit reveal">
+          <span class="benefit-num">01</span>
+          <h3>Rapide</h3>
+          <p>Des propositions en quelques minutes, pas en quelques semaines.</p>
+        </article>
+        <article class="benefit reveal">
+          <span class="benefit-num">02</span>
+          <h3>Personnalisé</h3>
+          <p>Des assemblages sélectionnés pour votre projet.</p>
+        </article>
+        <article class="benefit reveal">
+          <span class="benefit-num">03</span>
+          <h3>Un expert au bon moment</h3>
+          <p>Nos parfumeurs vous accompagnent quand votre projet le demande.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
