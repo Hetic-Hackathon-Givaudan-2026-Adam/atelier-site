@@ -50,6 +50,10 @@
     email: $("pf-email"),
   };
 
+  // an e-mail address stays on one line (no break at "-"), unless it is
+  // wider than its box: then it breaks anywhere rather than overflow
+  const emailSpan = (email) => h("span", { class: "email-text" }, email);
+
   function renderInfo() {
     const s = S.get();
     const set = (key, value, empty) => {
@@ -61,6 +65,11 @@
     set("lastName", s.lastName);
     set("company", s.company);
     set("email", s.email);
+    if (s.email) {
+      const dd = view.querySelector('[data-info="email"]');
+      dd.textContent = "";
+      dd.append(emailSpan(s.email));
+    }
     set("status", s.existingClient ? "Client Givaudan" : "Nouveau client");
   }
 
@@ -295,7 +304,9 @@
     }
     Store.saveProfile({ dataRequest: { date: window.AtelierClock.nowISO(), categories } });
     renderRequestStatus();
-    $("request-done-text").textContent = `Vous recevrez vos données par e-mail à ${email} sous 30 jours maximum.`;
+    const doneText = $("request-done-text");
+    doneText.textContent = "";
+    doneText.append("Vous recevrez vos données par e-mail à ", emailSpan(email), " sous 30 jours maximum.");
     requestForm.hidden = true;
     requestDone.hidden = false;
     requestDialog.setAttribute("aria-labelledby", "request-done-title");

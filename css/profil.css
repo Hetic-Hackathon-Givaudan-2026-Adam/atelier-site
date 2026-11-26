@@ -36,6 +36,10 @@
 .profile-info > div:first-child { border-top: 0; padding-top: 4px; }
 .profile-info dt { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); align-self: center; }
 .profile-info dd { margin: 0; font-size: 1rem; color: var(--ink); overflow-wrap: anywhere; }
+/* e-mail address: kept whole (moves to the next line as one piece); an
+   inline-block never wider than its box, so a very long address breaks
+   anywhere instead of overflowing */
+.email-text { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .profile-info dd.is-empty { color: var(--muted); font-style: italic; }
 
 .profile-form { margin-top: 4px; }
