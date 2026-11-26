@@ -1,15 +1,18 @@
-/* =========================================================
-   Givaudan Atelier — Espace commercial (Givaudan side, demo view)
-
-   Leads = the demo client's projects (Store.listProjects + Orders.list:
-   everything done in the client demo shows up here) + 5 fictional clients.
-   For each lead: potential (internal), stage, history, and ONE next best
-   action computed by rules (first match wins). Sales actions are stored in
-   localStorage "givaudanAtelier.salesActions" (cleared by Store.reset()).
-   Nothing from this page is ever shown to the client.
-   ========================================================= */
-(() => {
+/* Vue commerciale des projets affectés et administration des affectations. */
+(async () => {
   "use strict";
+
+  const session = await AtelierSession.ready;
+  if (!session || !(await AtelierData.ready)) return;
+  if (session.role === "admin" && location.pathname.includes("commercial-messages")) {
+    location.replace("espace-commercial");
+    return;
+  }
+  document.querySelector(".sales-who").textContent = `${session.firstName} ${session.lastName}`;
+  document.querySelector(".sales-avatar").textContent = AtelierSession.initials(session);
+  const dayName = document.querySelector("#day-title em");
+  if (dayName) dayName.textContent = session.firstName;
+
 
   // the lead model lives in js/sales-data.js (shared with the Messages page)
   const S = window.AtelierSales;
@@ -34,6 +37,36 @@
   // demo dates (js/clock.js): "Aujourd'hui", "Hier", "17 nov."
   const Clock = window.AtelierClock;
   const rel = (d) => { const t = Clock.relativeLabel(d); return /^(Aujourd|Hier)/.test(t) ? t.toLowerCase() : t; };
+
+  const admin = session.role === "admin";
+  let staff = [];
+  if (admin) {
+    document.querySelector(".sales-tab-msg").hidden = true;
+    document.querySelector(".sales-label").textContent = "Administration";
+    try {
+      staff = AtelierData.value(await supabaseClient.from("profiles").select("id,full_name,email").eq("role", "commercial").order("full_name"));
+    } catch (error) { AtelierData.report(error); }
+  }
+
+  function assignment(lead) {
+    const select = h("select", { "aria-label": "Commercial affecté" },
+      h("option", { value: "" }, "Sans affectation"),
+      staff.map((person) => h("option", { value: person.id }, person.full_name || person.email)));
+    select.value = lead.project.commercialId || "";
+    const save = h("button", { type: "button", class: "btn btn-small btn-outline", onclick: async () => {
+      save.disabled = true;
+      try {
+        AtelierData.value(await supabaseClient.rpc("atelier_assign_project", {
+          project: lead.project.id, commercial: select.value || null,
+        }));
+        await AtelierData.load();
+        refresh();
+        showToast("Affectation enregistrée.");
+      } catch (error) { AtelierData.report(error); }
+      finally { save.disabled = false; }
+    } }, "Enregistrer l’affectation");
+    return h("div", { class: "lead-action" }, select, save);
+  }
 
   /* ================= header: date + KPIs ================= */
   const dateText = Orders.parseDate(TODAY).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -78,7 +111,7 @@
           h("button", { type: "button", class: "lead-open", "aria-haspopup": "dialog", onclick: (e) => openLead(l.id, e.currentTarget) }, l.project.name)),
         h("p", { class: "lead-meta" }, l.fields.product || "Projet", h("span", { "aria-hidden": "true" }, " · "), l.stage,
           h("span", { "aria-hidden": "true" }, " · "), `Dernière activité : ${rel(l.lastActivity)}`)),
-      h("div", { class: "lead-action" },
+      admin ? assignment(l) : h("div", { class: "lead-action" },
         h("p", { class: `nba nba--${l.nba.level}` },
           LEVELS[l.nba.level] ? h("span", { class: "nba-level" }, LEVELS[l.nba.level]) : null,
           h("strong", { class: "nba-label" }, l.nba.label)),
@@ -265,18 +298,24 @@
     if (!["quote", "retouch", "done"].includes(l.nba.kind)) {
       actions.append(h("button", { type: "button", class: "btn btn-outline btn-small", onclick: () => doAction(l, "done") }, "Marquer comme traité"));
     }
-    root.append(actions, composer);
+    if (!admin) root.append(actions, composer);
 
     // demo client: the /messages conversation about this project + a reply box
-    if (l.conversation) {
+    if (!admin && l.conversation) {
       const replyArea = h("textarea", { class: "fb-input ld-reply", id: "ld-reply", rows: "3", placeholder: "Votre réponse…" });
       const replyBtn = h("button", { type: "button", class: "btn btn-primary btn-small", disabled: true }, "Envoyer");
       replyArea.addEventListener("input", () => { replyBtn.disabled = !replyArea.value.trim(); });
-      replyBtn.addEventListener("click", () => {
+      replyBtn.addEventListener("click", async () => {
         const text = replyArea.value.trim();
         if (!text) return;
-        window.AtelierMessages.addSales(text, aboutProject(l));
-        afterAction(l.id, `Réponse envoyée à ${l.contactFull}.`);
+        replyBtn.disabled = true;
+        try {
+          await window.AtelierMessages.addSales(text, aboutProject(l));
+          afterAction(l.id, "Réponse envoyée.");
+        } catch (error) {
+          AtelierData.report(error);
+          replyBtn.disabled = false;
+        }
       });
       const who = (m) => (m.from === "client" ? l.contactFull : m.from === "sales" ? (m.auto ? "Réponse automatique" : "Claire Martin (vous)") : "Événement");
       root.append(section("Messages",
@@ -362,12 +401,12 @@
     if (message) showToast(message);
   }
 
-  function sendMessage(l, text) {
+  async function sendMessage(l, text) {
     if (!text.trim()) return;
-    addAction(l.id, "relance", text.trim());
-    // the demo client receives it in /messages (fictional leads: local history only)
-    if (l.demo && window.AtelierMessages) window.AtelierMessages.addSales(text.trim(), aboutProject(l));
-    afterAction(l.id, `Message envoyé à ${l.client}.`);
+    try {
+      await window.AtelierMessages.addSales(text.trim(), aboutProject(l));
+      afterAction(l.id, "Message envoyé.");
+    } catch (error) { AtelierData.report(error); }
   }
   function doAction(l, type) {
     addAction(l.id, type);
@@ -379,7 +418,6 @@
     if (!o) return;
     Orders.update(o.id, { status: "confirmee", history: [...o.history, { date: TODAY, label: "Retouche validée par le parfumeur" }] });
     addAction(l.id, "retouch_validated");
-    if (l.demo && window.AtelierMessages) window.AtelierMessages.addSystem(`Retouche validée par le parfumeur — N° ${o.number}`, { type: "order", id: o.id, label: `${o.reference} — N° ${o.number}` }, `retouch-ok:${o.number}`);
     afterAction(l.id, "La retouche est validée : la commande est confirmée.");
   }
   function copyText(area) {

@@ -1,14 +1,15 @@
-/* =========================================================
-   Givaudan Atelier — Mes commandes
-   Orders come from js/orders.js (shared with Mes projets): samples +
-   localStorage, merged by id. Protected page (session.js guard).
-   ========================================================= */
-(() => {
+/* Suivi des commandes et avis associés au compte client. */
+(async () => {
   "use strict";
 
   const S = window.AtelierSession;
-  const session = S && S.get();
-  if (!session) return; // session.js already redirected to the login page
+  if (!S) return;
+  await S.ready;
+
+  const session = S.get();
+
+  if (!session || session.role !== "client") return;
+  if (!(await AtelierData.ready)) return;
 
   const Orders = window.AtelierOrders;
   const Store = window.AtelierStore;
@@ -545,11 +546,9 @@
   }
 
   /* conversation with the sales rep (js/messages-store.js): automatic system events */
-  const M = window.AtelierMessages;
   const aboutOrder = (o) => ({ type: "order", id: o.id, label: `${o.reference} — N° ${o.number}` });
   function feedbackEvent(o, fb) {
     if (!M) return;
-    M.addSystem(`Votre avis sur ${baseName(o)} : ${Orders.feedbackLabel(fb)}.`, aboutOrder(o), `feedback:${o.id}:${fb.verdict}`);
   }
 
   function setNext(o, next, extra = {}) {
@@ -560,7 +559,6 @@
     const ui = fbUi.get(o.id);
     if (!ui || !ui.volume) return;
     setNext(o, "quote", { quote: { volume: ui.volume, comment: (ui.comment || "").trim() } });
-    if (M) M.addSystem(`Demande de devis transmise à ${existing ? "Claire Martin" : "notre équipe"}.`, aboutOrder(o), `quote:${o.id}`);
     fbUi.delete(o.id);
     refreshCard(o.id, ".fb-edit");
     showToast(existing ? "Demande de devis transmise à Claire Martin." : "Demande de devis transmise à nos experts.");
@@ -648,7 +646,6 @@
       retouche, // read later by the Espace commercial
     });
     setNext(o, "adjusted_sample", { adjustedOrder: created.number, retouche });
-    if (M) M.addSystem(`Demande de retouche envoyée à nos parfumeurs — N° ${created.number}`, aboutOrder(created), `retouch:${created.number}`);
     fbUi.delete(o.id);
     resetFilters();
     render({ highlightId: created.id });

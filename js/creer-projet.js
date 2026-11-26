@@ -1,23 +1,20 @@
-/* =========================================================
-   Givaudan Atelier — "Créer un projet" (conversation UI)
-   Renders whatever getAssistantTurn() returns (js/assistant.js).
-   The UI never reads the scenario directly, so swapping the scripted
-   engine for the RAG API needs no change here.
-   ========================================================= */
-(() => {
+/* Conversation projet, import de brief et sauvegarde via FastAPI. */
+(async () => {
   "use strict";
 
   const S = window.AtelierSession;
-  const session = S && S.get();
-  if (!session) return; // session.js already redirected to the login page
+  if (!S) return;
+  await S.ready;
+
+  const session = S.get();
+
+  if (!session || session.role !== "client") return;
+  if (!(await AtelierData.ready)) return;
 
   const { getAssistantTurn, projectName } = window.AtelierAssistant;
   // blends on screen: the project's own (resumed project or RAG bank), otherwise the scenario's —
   // none when the RAG API found no blend close enough (noMatch: expert path)
-  const offeredBlends = () => {
-    if (state.blends && state.blends.length) return state.blends;
-    return state.noMatch ? [] : window.AtelierAssistant.blends;
-  };
+  const offeredBlends = () => state.blends || [];
   const Store = window.AtelierStore;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const wait = (ms) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
@@ -44,7 +41,8 @@
   let lastVia = "load"; // "chip" | "text" | "load": decides where focus goes
   let activeChoices = null;
   let openSummary = null; // { userMsg, msg, form }
-  let saved = false;
+  let pendingProjectId;
+  let transcript = [];
   // ?projet=<id> → resume that project ("Reprendre" in Mes projets)
   let resumeId = new URLSearchParams(location.search).get("projet");
 
@@ -54,7 +52,7 @@
     source: null, // { type: "import", fileName } for an imported brief
     fromProject: null, // { id, name, ambiance, notes, intensity } when started from an existing project
     firstName: session.firstName,
-    existingClient: Boolean(session.existingClient),
+    existingClient: Store.projects().some((project) => project.status !== "draft"),
     product: null, target: null, ambiance: [], notes: [], constraints: [], intensity: null,
     market: null, volume: null, launch: null, potential: null, blend: null, status: null,
     noMatch: false, // the RAG API found no blend close enough (expert path)
@@ -275,28 +273,54 @@
   }
 
   /* ---------------- one assistant turn ---------------- */
-  async function runTurn(userInput) {
+  async function runTurn(userInput, replay) {
     const id = ++runId;
     setBusy(true);
     const typing = reduced ? null : showTyping();
     let turn;
-    try {
-      [turn] = await Promise.all([
-        getAssistantTurn(JSON.parse(JSON.stringify(state)), userInput),
-        wait(800 + Math.random() * 400),
-      ]);
-    } catch (err) {
-      turn = { message: "Un instant : la connexion a été interrompue. Pouvez-vous reformuler ?", step: state.step };
+    function retry(error) {
+      const { body } = atelierMsg(`Le tour n’a pas été enregistré. ${error.message || "Réessayez."}`);
+      body.append(h("button", { type: "button", class: "btn btn-outline", onclick: () => {
+        body.closest(".msg").remove();
+        runTurn(userInput, turn);
+      } }, "Réessayer"));
     }
-    if (id !== runId) return; // restarted meanwhile
-    if (typing) typing.remove();
-    await renderTurn(turn, id);
-    if (id === runId) setBusy(false);
+    const before = structuredClone(state);
+    let committed = false;
+    try {
+      turn = replay || await getAssistantTurn(before, userInput);
+      if (id !== runId) return;
+      if (typing) typing.remove();
+      applyUpdates(turn.projectUpdates, turn.changed || []);
+      state.step = turn.step || state.step;
+      if (turn.blends) {
+        state.blends = turn.blends;
+        state.noMatch = Boolean(turn.noMatch) || !turn.blends.length;
+      }
+      if (userInput && userInput.action !== "resume" && userInput.action !== "choose_project") {
+        const history = [...transcript, { input: userInput, reply: turn.message }];
+        await persist(history, turn, id);
+        if (id !== runId) return;
+        transcript = history;
+        committed = true;
+      }
+      await renderTurn(turn, id);
+    } catch (error) {
+      if (id !== runId) return;
+      if (committed) { AtelierData.report(error); return; }
+      state = before;
+      FIELDS.forEach((key) => renderField(key, false));
+      updateCount();
+      if (typing) typing.remove();
+      retry(error);
+    } finally {
+      if (id === runId) setBusy(false);
+    }
   }
 
   async function renderTurn(turn, id) {
     const changed = turn.changed || [];
-    applyUpdates(turn.projectUpdates, changed);
+
     // fields taken from an existing project: small "repris de …" tag
     if (turn.prefilled) {
       turn.prefilled.forEach((k) => {
@@ -338,7 +362,6 @@
     }
     if (state.step === "done") {
       lockOffers();
-      if (!saved) persist();
       body.append(turn.confirmation ? confirmationCard(turn.confirmation) : projectLink());
       focusTarget = body.querySelector(".btn, .side-link");
       scrollToEl(el);
@@ -679,6 +702,7 @@
       projectId: p.id,
       projectName: p.name,
       created: p.created || p.date,
+      ...p.progressFields,
       product: p.product || null,
       target: b.target || null,
       ambiance: b.ambiance || [],
@@ -693,7 +717,8 @@
       favorite: p.favorite || null,
       status: p.status || null,
       source: p.source || null,
-      step: "reveal",
+      blend: p.blend?.id || null,
+      step: p.step || "reveal",
     };
   }
 
@@ -730,35 +755,44 @@
 
   /* ---------------- save for Mes projets ---------------- */
   // a resumed project (state.projectId) is UPDATED, never duplicated
-  function persist() {
+  async function persist(history, turn, id) {
     const blend = offeredBlends().find((b) => b.id === state.blend) || null;
     const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const savedProject = Store.saveProject({
-      id: state.projectId || undefined,
+    pendingProjectId ||= state.projectId || crypto.randomUUID();
+    const savedProject = await Store.saveProject({
+      id: state.projectId || pendingProjectId,
+      conversation: history,
+      lastTurn: turn,
+      progressFields: {
+        fromProject: state.fromProject, editReturn: state.editReturn, editTopic: state.editTopic,
+        format: state.format, address: state.address, orderNumber: state.orderNumber, noMatch: state.noMatch,
+      },
+      step: state.step,
       created: state.created || undefined,
       blends: offeredBlends(),
       favorite: state.favorite,
       expertNote: null,
       name: state.projectName || projectName(state),
       product: state.product,
-      status: state.status, // "requested" | "expert"
+      status: state.blends.length && (!state.status || state.status === "draft") ? "proposed" : state.status || "draft",
       blend: blend ? {
         id: blend.id, name: blend.name,
-        notes: [blend.top, blend.heart, blend.base].map((p) => cap(p.split(",")[0].trim())).join(" · "),
+        notes: [blend.top, blend.heart, blend.base].map((p) => cap(String(p || "").split(",")[0].trim())).join(" · "),
       } : null,
       brief: {
-        target: state.target, ambiance: state.ambiance, notes: state.notes, constraints: state.constraints,
+        product: state.product, target: state.target, ambiance: state.ambiance, notes: state.notes, constraints: state.constraints,
         intensity: state.intensity, market: state.market, volume: state.volume, launch: state.launch,
       },
       potential: state.potential, // internal, for the sales team — never displayed
       format: state.format || null,
       orderNumber: state.orderNumber || null,
       address: state.address || null,
-      contact: state.existingClient ? "Claire Martin" : null,
+      contact: null,
       // how the brief was given (older saved projects have no source = chat)
       source: state.source || { type: "chat" },
     });
-    if (state.status === "requested" && blend) {
+    if (id !== runId) return;
+    if (state.step === "done" && state.status === "requested" && blend) {
       // shown in Mes commandes and in "Dernières commandes" (js/orders.js)
       const O = window.AtelierOrders;
       const address = O.defaultAddress();
@@ -768,7 +802,7 @@
         if (line) address.line = line;
         if (city.length) address.city = city.join(", ");
       }
-      const sampleOrder = O.add({
+      O.add({
         number: state.orderNumber,
         type: "echantillon",
         reference: blend.name,
@@ -785,15 +819,13 @@
         projectId: savedProject.id,
         projectName: savedProject.name,
       });
-      // conversation with the sales rep: automatic event (js/messages-store.js)
-      if (window.AtelierMessages) {
-        window.AtelierMessages.addSystem(`Échantillon ${blend.name} demandé — N° ${sampleOrder.number}`,
-          { type: "order", id: sampleOrder.id, label: `${blend.name} — N° ${sampleOrder.number}` }, `sample:${sampleOrder.number}`);
-      }
     }
-    // later saves and messages after the end use this same project (no duplicate)
     state.projectId = savedProject.id;
-    saved = true;
+    if (!resumeId) historyReplace(savedProject.id);
+  }
+
+  function historyReplace(id) {
+    history.replaceState(null, "", `creer-projet?projet=${encodeURIComponent(id)}`);
   }
 
   /* ================= brief import =================
@@ -1011,7 +1043,7 @@
   async function startImport(file, panel) {
     if (busy) return;
     lastVia = "chip";
-    const ex = BI.example(); // a real text file when the RAG API answers, else the scripted demo
+    const ex = BI.example();
     const name = file ? file.name : ex.name;
     panel.clearError(); // an earlier refused file no longer matters
     panel.showFile(name, file ? file.size : ex.size);
@@ -1347,47 +1379,22 @@
 
   /* ---------------- after the end: messages go to the sales rep ---------------- */
   // simple keyword check: does the message look like a change to the brief?
-  const CHANGE_WORDS = /\b(plus|moins|finalement|prefer\w*|chang\w*|modifi\w*|boise\w*|floral\w*|fruite\w*|intensite|budget|volume|date|ajout\w*|enlev\w*)\b/;
-  const looksLikeChange = (text) => CHANGE_WORDS.test(text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""));
-
   async function answerAfterEnd(text) {
     const id = runId;
-    if (!state.projectId && !saved) persist();
-    const project = state.projectId ? Store.find(state.projectId) : null;
-    const M = window.AtelierMessages;
-    const about = project ? { type: "project", id: project.id, label: project.name } : null;
-    if (M) {
-      M.add({ from: "client", text, about });
-      // one automatic acknowledgment per project in Messages, flagged auto
-      const hasAck = about && M.list().some((m) => m.auto && m.key === `ack:${about.id}`);
-      if (about && !hasAck) {
-        const ack = state.existingClient
-          ? "Merci pour votre message, je reviens vers vous rapidement. — Claire"
-          : "Merci pour votre message, nous revenons vers vous rapidement. — L'équipe Givaudan Atelier";
-        M.add({ from: "sales", text: ack, read: false, auto: true, key: `ack:${about.id}`, about });
-      }
-      if (S.renderMessagesBadge) S.renderMessagesBadge();
-    }
-
-    const contact = (project && project.contact) || (state.existingClient ? "Claire Martin" : null);
-    const first = contact ? contact.split(" ")[0] : null;
-    const who = first ? `${first}, votre interlocutrice` : "notre équipe";
-    const reply = looksLikeChange(text)
-      ? `C'est noté. J'ai transmis votre demande à ${who}. L'expert en tiendra compte, et ${first || "notre équipe"} vous répondra dans Messages.`
-      : `Bien sûr. J'ai transmis votre message à ${who}. Elle vous répondra dans Messages.`;
-
     setBusy(true);
-    const typing = reduced ? null : showTyping();
-    await wait(800);
-    if (id !== runId) return; // restarted meanwhile
-    if (typing) typing.remove();
-    const { el, body } = atelierMsg(reply);
-    const href = project ? `messages?projet=${encodeURIComponent(project.id)}` : "messages";
-    body.append(h("a", { href, class: "side-link" }, "Ouvrir la conversation ", h("span", { "aria-hidden": "true" }, "→")));
-    announce(reply);
-    scrollToEl(el);
-    setBusy(false);
-    input.focus({ preventScroll: true });
+    try {
+      await AtelierData.send(state.projectId, text);
+      if (id !== runId) return;
+      const { el, body } = atelierMsg("Votre message a été envoyé.");
+      body.append(h("a", { href: `messages?projet=${encodeURIComponent(state.projectId)}`, class: "side-link" }, "Ouvrir la conversation →"));
+      scrollToEl(el);
+    } catch (error) {
+      if (id !== runId) return;
+      input.value = text;
+      atelierMsg("Impossible d’envoyer ce message. Vous pouvez réessayer.");
+    } finally {
+      if (id === runId) setBusy(false);
+    }
   }
 
   /* ---------------- start / restart ---------------- */
@@ -1400,7 +1407,8 @@
     entry = null;
     importPanel = null;
     review = null;
-    saved = false;
+    pendingProjectId = null;
+    transcript = [];
     input.disabled = false;
     input.value = "";
     state = freshState();
@@ -1419,8 +1427,21 @@
       state = projectFromStore(project);
       FIELDS.forEach((k) => renderField(k, false));
       updateCount();
-      stageForStep("reveal");
-      runTurn({ type: "action", action: "resume" });
+      transcript = project.conversation || [];
+      stageForStep(state.step);
+      if (project.lastTurn && state.step !== "import") {
+        const log = h("details", { class: "msg" }, h("summary", {}, "Historique de la conversation"));
+        transcript.forEach(({ input, reply }) => {
+          const label = input.text || (Array.isArray(input.values) ? input.values.join(", ") : Object.values(input.values || {}).filter(Boolean).join(", "));
+          if (label) log.append(h("p", {}, label));
+          log.append(h("p", {}, plain(reply)));
+        });
+        thread.append(log);
+        renderTurn(project.lastTurn, runId).catch(AtelierData.report);
+      } else if (state.step === "import") {
+        state.step = null;
+        runTurn(null);
+      } else runTurn({ type: "action", action: "resume" });
       return;
     }
 
@@ -1433,10 +1454,8 @@
   // "Recommencer" always starts a brand-new project (no project id)
   $("#restart").addEventListener("click", () => {
     lastVia = "chip";
-    if (resumeId) {
-      resumeId = null;
-      history.replaceState(null, "", "creer-projet");
-    }
+    resumeId = null;
+    history.replaceState(null, "", "creer-projet");
     start();
   });
 

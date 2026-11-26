@@ -1,23 +1,4 @@
-/* =========================================================
-   Givaudan Atelier — brief import ("Importer mon brief")
-
-   ONE entry point:  await analyzeBrief(file)
-     file   a File from the drop zone / file input, or null for the demo
-            example ("Brief_Gel-douche_AquaSport.pdf")
-   returns { fileName, summary, projectName,
-             fields: { product, target, ambiance[], notes[], constraints[],
-                       intensity, market, volume, launch },
-             found: [field keys read in the document],
-             missing: [field keys still unknown] }
-
-   With the local RAG API (js/api.js): the file is sent to
-   POST /atelier/brief/import (read in memory on this computer, never stored).
-   The example sends assets/brief-exemple.txt. A refused document (413 / 415 /
-   422) returns { error: "<French message>" }: shown in the drop zone, no
-   simulation. Network error / timeout → the scripted result below.
-   In simulation (API unreachable, published page): the scripted demo brief,
-   whatever the file (nothing is uploaded: the document stays in the browser).
-   ========================================================= */
+/* Validation locale des fichiers, extraction par l’API et résumé du brief. */
 window.AtelierBriefImport = (() => {
   "use strict";
 
@@ -25,13 +6,10 @@ window.AtelierBriefImport = (() => {
   const EXTENSIONS = ["pdf", "docx", "txt"]; // the old .doc format is not readable
   const ACCEPT = ".pdf,.docx,.txt";
   const FORMATS_LINE = "PDF, Word (.docx) ou texte — 10 Mo maximum";
-  const SIMULATED_EXAMPLE = { name: "Brief_Gel-douche_AquaSport.pdf", size: 254 * 1024 };
   const API_EXAMPLE = { name: "Brief_Gel-douche_AquaSport.txt", url: "assets/brief-exemple.txt" };
-  const FIELD_KEYS = ["product", "target", "ambiance", "notes", "constraints", "intensity", "market", "volume", "launch"];
 
-  const connected = () => Boolean(window.AtelierAPI && window.AtelierAPI.status === "connected");
   // the example shown in the file chip: a real text file when the API answers
-  const example = () => (connected() ? { name: API_EXAMPLE.name, size: 1400 } : SIMULATED_EXAMPLE);
+  const example = () => ({ name: API_EXAMPLE.name, size: 1400 });
 
   // French error message, or null when the file can be analysed
   function validateFile(file) {
@@ -50,7 +28,6 @@ window.AtelierBriefImport = (() => {
     return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} Mo`;
   }
 
-  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function exampleFile() {
     const res = await fetch(API_EXAMPLE.url);
@@ -60,41 +37,11 @@ window.AtelierBriefImport = (() => {
   }
 
   async function analyzeBrief(file) {
-    const API = window.AtelierAPI;
-    if (API && (await API.ready())) {
-      try {
-        const sent = file || (await exampleFile());
-        return await API.importBrief(sent); // result, or { error } shown in the drop zone
-      } catch (err) {
-        console.info("[Atelier] IA locale sans réponse pour ce brief : simulation.");
-        API.markDown();
-      }
+    try {
+      return await AtelierAPI.importBrief(file || await exampleFile());
+    } catch (error) {
+      return { error: error.message };
     }
-    return simulatedAnalysis(file);
-  }
-
-  async function simulatedAnalysis(file) {
-    await delay(window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 2400);
-    const fields = {
-      product: "Gel douche",
-      target: "Sportifs",
-      ambiance: ["Énergie", "Fraîcheur"],
-      notes: ["Agrumes", "Menthe", "Notes vertes"],
-      constraints: ["Naturel", "Vegan"],
-      intensity: "Modérée",
-      market: "Europe",
-      volume: null,
-      launch: null,
-    };
-    const has = (k) => (Array.isArray(fields[k]) ? fields[k].length > 0 : Boolean(fields[k]));
-    return {
-      fileName: file ? file.name : SIMULATED_EXAMPLE.name,
-      summary: "Un gel douche pour une nouvelle gamme destinée aux sportifs, vendue en Europe. Vous recherchez une fragrance énergisante et fraîche, autour des agrumes et de la menthe, avec une formule naturelle et vegan.",
-      projectName: "Gel douche Aqua Sport",
-      fields,
-      found: FIELD_KEYS.filter(has),
-      missing: FIELD_KEYS.filter((k) => !has(k)),
-    };
   }
 
   /* ---------------- summary rewritten from the current fields ----------------

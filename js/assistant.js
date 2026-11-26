@@ -574,20 +574,9 @@
     return turn;
   }
 
-  /* ---------------- the single entry point ----------------
-     Local RAG API when it answers (js/api.js), otherwise the scripted engine.
-     A failed call falls back to the simulation for THIS message only. */
+  /* Point d’entrée de la conversation connectée. */
   async function getAssistantTurn(projectState, userInput) {
-    const API = window.AtelierAPI;
-    if (API && (await API.ready())) {
-      try {
-        return await API.chat(projectState, userInput);
-      } catch (err) {
-        console.info("[Atelier] IA locale sans réponse pour ce message : simulation.");
-        API.markDown();
-      }
-    }
-    return simulatedTurn(projectState, userInput);
+    return AtelierAPI.chat(projectState, userInput);
   }
 
   /* answer lists of one brief field, for the review card of an imported brief

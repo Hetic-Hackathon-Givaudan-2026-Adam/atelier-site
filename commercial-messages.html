@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-protected="commercial">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16,6 +16,10 @@
   <link rel="stylesheet" href="css/commercial.css" />
   <link rel="stylesheet" href="css/messages.css" />
   <link rel="stylesheet" href="css/commercial-messages.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2" integrity="sha384-7i/4BYWz4Mn+lJfg2HWfEPfZQ7tmFKF3CTSKlXBpxWjNlLjcg+T6smpHG4gLmU1u" crossorigin="anonymous"></script>
+  <script src="js/runtime-config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/session.js"></script>
 </head>
 <body class="account-page commercial-page sales-messages-page">
   <header class="site-header is-solid sales-header">
@@ -30,7 +34,7 @@
     <div class="sales-user">
       <span class="sales-avatar" aria-hidden="true">CM</span>
       <span class="sales-who"><strong>Claire Martin</strong> · Responsable de compte</span>
-      <a href="mes-projets" class="sales-switch">Voir l'espace client</a>
+      <button type="button" class="sales-switch" data-staff-logout>Se déconnecter</button>
     </div>
   </header>
 
@@ -93,6 +97,7 @@
   <script src="js/clock.js"></script>
   <script src="js/messages-store.js"></script>
   <script src="js/samples.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/store.js"></script>
   <script src="js/orders.js"></script>
   <script src="js/scenario.js"></script>

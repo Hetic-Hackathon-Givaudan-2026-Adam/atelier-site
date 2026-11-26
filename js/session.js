@@ -1,8 +1,4 @@
-/* =========================================================
-   Givaudan Atelier — simulated login state (front-end prototype)
-   Stored in localStorage only. Loaded in <head> on every page so that
-   protected pages (<html data-protected>) redirect before rendering.
-   ========================================================= */
+/* Gestion de la session Supabase et des accès par page. */
 (() => {
   "use strict";
 
@@ -10,7 +6,7 @@
   const NEXT_KEY = "atelierNext"; // destination kept in sessionStorage across the login page
   const REORDER_KEY = "atelierOpenReorder"; // "1" → open the reorder modal on Mes commandes
   // only these pages are accepted as a post-login destination (no open redirect)
-  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages"];
+  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "brief", "espace-commercial", "commercial-messages"];
   const DEFAULT_NEXT = "mes-projets";
 
   // "creer-projet", "/creer-projet", "creer-projet.html" → "creer-projet"; anything else → null
@@ -20,42 +16,80 @@
     return NEXT_PAGES.includes(v) ? v : null;
   };
 
-  const read = () => {
+  let currentSession = null;
+
+  const read = () => currentSession;
+
+  async function loadSession() {
+    currentSession = null;
+
     try {
-      const s = JSON.parse(localStorage.getItem(KEY));
-      return s && typeof s.firstName === "string" ? s : null;
-    } catch (_) {
+
+
+      if (!supabaseClient) return null;
+      const { data, error } = await supabaseClient.auth.getUser();
+
+      if (error || !data.user) return null;
+
+      const user = data.user;
+
+      const { data: profile, error: profileError } =
+        await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+      if (profileError) throw profileError;
+
+      const metadata = user.user_metadata || {};
+      const names = (profile.full_name || "").trim().split(/\s+/);
+
+      currentSession = {
+        id: user.id,
+        email: user.email,
+        firstName: metadata.first_name || names[0] || "Client",
+        lastName: metadata.last_name || names.slice(1).join(" ") || "Atelier",
+        company: metadata.company || "Entreprise non renseignée",
+        role: profile.role,
+        existingClient: false,
+        since: Date.now()
+      };
+
+      return currentSession;
+
+    } catch (error) {
+      console.error("Erreur session Supabase :", error.message);
       return null;
     }
-  };
-  const write = (s) => {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (_) { /* storage blocked */ }
-  };
+  }
 
   const api = {
     get: read,
-    isLoggedIn: () => Boolean(read()),
-    login({ firstName, lastName, company, existingClient } = {}) {
-      const s = {
-        firstName: (firstName || "").trim() || "Mira",
-        lastName: (lastName || "").trim() || "Koné",
-        company: (company || "").trim() || "Maison Koné",
-        existingClient: Boolean(existingClient),
-        since: Date.now(),
-      };
-      write(s);
-      return s;
-    },
+
+    isLoggedIn: () => Boolean(currentSession),
+
+    login: loadSession,
+
     update(patch) {
-      const s = read();
-      if (!s) return null;
-      Object.assign(s, patch);
-      write(s);
-      return s;
+      if (!currentSession) return null;
+
+      if (typeof patch.existingClient === "boolean") {
+        currentSession.existingClient = patch.existingClient;
+      }
+
+      return currentSession;
     },
-    logout() {
-      try { localStorage.removeItem(KEY); } catch (_) { /* ignore */ }
+
+    async logout() {
+      const { error } = await supabaseClient.auth.signOut();
+
+      if (error) throw error;
+
+      currentSession = null;
+      localStorage.removeItem(KEY);
     },
+
     safeNext(value) {
       return normalizeNext(value) || DEFAULT_NEXT;
     },
@@ -101,13 +135,48 @@
   };
   window.AtelierSession = api;
 
-  /* ---------------- Guard for customer-space pages ---------------- */
-  if (document.documentElement.hasAttribute("data-protected") && !read()) {
-    const page = api.safeNext(location.pathname.split("/").pop());
-    api.rememberNext(page);
-    location.replace(`connexion?next=${encodeURIComponent(page)}`);
-    return;
+  const pageRole = document.documentElement.getAttribute("data-protected");
+  const protectedPage = pageRole !== null;
+  const allowed = (session) => session && (pageRole === "commercial"
+    ? ["commercial", "admin"].includes(session.role) : session.role === "client");
+  api.destination = (session, next) => session.role === "client"
+    ? (["espace-commercial", "commercial-messages"].includes(next) ? DEFAULT_NEXT : next)
+    : session.role === "commercial" && next === "commercial-messages" ? next : "espace-commercial";
+
+  if (protectedPage) {
+    document.documentElement.style.visibility = "hidden";
   }
+
+  api.ready = loadSession().then((session) => {
+    if (protectedPage && session && !allowed(session)) {
+      location.replace(api.destination(session, DEFAULT_NEXT));
+      return null;
+    }
+    if (protectedPage && !session) {
+      const page = api.safeNext(location.pathname.split("/").pop());
+      api.rememberNext(page);
+      location.replace(`connexion?next=${encodeURIComponent(page)}`);
+      return null;
+    }
+
+    document.documentElement.style.visibility = "";
+    return session;
+  });
+
+  supabaseClient?.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") {
+      const wasSignedIn = Boolean(currentSession);
+      currentSession = null;
+      if (protectedPage && wasSignedIn) {
+        document.documentElement.style.visibility = "hidden";
+        setTimeout(() => location.replace("connexion"), 0);
+      }
+    }
+  });
+
+  window.addEventListener("pageshow", (event) => {
+    if (protectedPage && event.persisted) location.reload();
+  });
 
   /* ---------------- Header ---------------- */
   function renderHeader() {
@@ -119,7 +188,7 @@
     document.querySelectorAll("[data-auth-next]").forEach((el) => {
       const next = el.dataset.authNext;
       const hash = el.dataset.authHash ? `#${el.dataset.authHash}` : ""; // e.g. commandes#recommander
-      if (s) el.setAttribute("href", next + hash);
+      if (s) el.setAttribute("href", api.destination(s, next) + hash);
       else if (!hasModal) el.setAttribute("href", `connexion?next=${encodeURIComponent(next)}#connexion`);
       // logged out, no modal on this page: keep the destination (and intent) for after login
       if (!s && !hasModal) {
@@ -175,7 +244,7 @@
     account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
     account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
     account.querySelector(".account-name").textContent = name;
-    account.querySelector(".account-status").textContent = s.existingClient ? "Client Givaudan" : "Nouveau client";
+    account.querySelector(".account-status").textContent = { client: "Espace client", commercial: "Commercial", admin: "Administrateur" }[s.role];
     signIn.replaceWith(account);
     document.documentElement.classList.add("is-logged-in");
 
@@ -209,14 +278,39 @@
     account.addEventListener("focusout", (e) => {
       if (isOpen() && !account.contains(e.relatedTarget)) close();
     });
-    account.querySelector("[data-logout]").addEventListener("click", () => {
-      api.logout();
+    account.querySelector("[data-logout]").addEventListener("click", async () => {
+      try {
+        await api.logout();
+      } catch (error) {
+        console.error("Erreur de deconnexion :", error);
+        alert("Impossible de se deconnecter : " + error.message);
+        return;
+      }
       api.rememberNext(null);
       api.rememberIntent(null);
-      location.href = "./";
+      location.replace("connexion");
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderHeader);
-  else renderHeader();
+  async function initHeader() {
+    await api.ready;
+
+    if (protectedPage && !allowed(read())) {
+      return;
+    }
+
+    document.querySelectorAll("[data-staff-logout]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try { await api.logout(); location.replace("connexion"); }
+        catch (error) { alert(error.message); }
+      });
+    });
+    renderHeader();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initHeader);
+  } else {
+    initHeader();
+  }
 })();
