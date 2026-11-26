@@ -100,21 +100,75 @@
 .btn-danger { background: var(--error); border-color: var(--error); color: #fff; }
 .btn-danger:hover { background: #8f1033; border-color: #8f1033; }
 
-/* ---------------- export fallback ---------------- */
-.export-dialog { width: min(640px, 100%); }
-.export-json {
-  display: block;
-  width: 100%;
-  margin: -10px 0 26px;
-  padding: 14px;
-  border: 1px solid rgba(20, 20, 20, 0.18);
-  border-radius: 6px;
-  background: #fbfaf8;
-  color: var(--ink-soft);
-  font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  resize: vertical;
+/* ---------------- data copy request ---------------- */
+.data-request { margin: -4px 0 0; }
+.data-request-link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 400;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: rgba(20, 20, 20, 0.25);
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 0.4s var(--ease), text-decoration-color 0.4s var(--ease);
 }
-.export-json:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(230, 0, 126, 0.14); }
+.data-request-link:hover { color: var(--ink); text-decoration-color: currentColor; }
+.data-request-link:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.data-request-status { margin: 4px 0 0; font-size: 0.82rem; }
+.data-request ~ .profile-actions { margin-top: 18px; }
+
+/* taller than a small screen once the e-mail notice shows: it scrolls */
+.request-dialog { width: min(520px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; }
+.request-fieldset { margin: 0 0 26px; padding: 0; border: 0; min-width: 0; }
+.request-legend { margin-bottom: 14px; padding: 0; }
+.request-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(20, 20, 20, 0.1);
+  cursor: pointer;
+}
+.request-option:last-of-type { border-bottom: 1px solid rgba(20, 20, 20, 0.1); }
+.request-option input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.request-option input:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+.request-option-text { display: grid; gap: 2px; }
+.request-option-name { font-size: 0.95rem; color: var(--ink); }
+.request-option-desc { font-size: 0.82rem; color: var(--muted); }
+
+.request-notice {
+  margin: -8px 0 24px;
+  padding: 16px 18px;
+  border-left: 2px solid var(--accent);
+  background: rgba(230, 0, 126, 0.05);
+  border-radius: 0 6px 6px 0;
+}
+.request-notice p { margin: 0 0 12px; font-size: 0.9rem; line-height: 1.5; color: var(--ink-soft); }
+
+.request-check {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: rgba(61, 154, 106, 0.12);
+  color: #2e7d55;
+}
+.request-check svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.request-done .modal-title:focus { outline: none; }
 
 /* ---------------- responsive ---------------- */
 @media (max-width: 960px) {

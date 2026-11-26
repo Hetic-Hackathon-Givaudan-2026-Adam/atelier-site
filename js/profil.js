@@ -2,7 +2,7 @@
    Givaudan Atelier — Mon profil (/profil)
    Account information (session), dedicated contact, usual requirements
    (localStorage "givaudanAtelier.profile", read by js/assistant.js),
-   data export and account deletion. Protected page (session.js guard).
+   data copy request (simulated) and account deletion. Protected page (session.js guard).
    No API call on this page.
    ========================================================= */
 (() => {
@@ -207,7 +207,7 @@
   let openModal = null;
   let lastFocus = null;
   let modalTimer = 0;
-  const focusables = (dialog) => Array.from(dialog.querySelectorAll("button:not([disabled]), textarea, a[href]"))
+  const focusables = (dialog) => Array.from(dialog.querySelectorAll("button:not([disabled]), input:not([disabled]), a[href]"))
     .filter((el) => el.offsetParent !== null);
 
   function showModal(modal, firstFocus) {
@@ -244,75 +244,68 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  /* ================= Mes données ================= */
-  const PREFIX = "givaudanAtelier.";
-  const SALES_ONLY = ["givaudanAtelier.salesActions", "givaudanAtelier.salesInbox"];
+  /* ================= Mes données: data copy request =================
+     Prototype: the request is only stored in givaudanAtelier.profile
+     (cleared by Store.reset()); no e-mail is sent. */
+  const requestModal = $("request-modal");
+  const requestDialog = requestModal.querySelector(".modal-dialog");
+  const requestForm = $("request-form");
+  const requestDone = $("request-done");
+  const requestSend = $("request-send");
+  const requestNotice = $("request-notice");
+  const boxes = Array.from(requestForm.querySelectorAll('input[name="categories"]'));
 
-  // every givaudanAtelier.* key of the client (not the Espace commercial ones)
-  function buildExport() {
-    const data = {};
-    try {
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (!key || !key.startsWith(PREFIX) || SALES_ONLY.includes(key)) continue;
-        const raw = localStorage.getItem(key);
-        let value = raw;
-        try { value = JSON.parse(raw); } catch (_) { /* keep the raw text */ }
-        data[key.slice(PREFIX.length)] = value;
-      }
-    } catch (_) { /* storage blocked: export what we could read */ }
-    return {
-      exportedAt: new Date().toISOString(),
-      app: "Givaudan Atelier (prototype)",
-      data,
-    };
-  }
-
-  const FILE_NAME = "mes-donnees-givaudan-atelier.json";
-  const inFrame = (() => { try { return window.self !== window.top; } catch (_) { return true; } })();
-
-  function showExportModal(json) {
-    $("export-json").value = json;
-    showModal($("export-modal"), $("export-copy"));
-  }
-
-  $("data-download").addEventListener("click", () => {
-    const json = JSON.stringify(buildExport(), null, 2);
-    let started = false;
-    try {
-      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
-      const link = h("a", { href: url, download: FILE_NAME, hidden: true });
-      document.body.append(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      started = true;
-    } catch (_) {
-      started = false;
+  function renderRequestStatus() {
+    const P = Store.profile();
+    const req = P && P.dataRequest;
+    const line = $("data-request-status");
+    line.hidden = !(req && req.date);
+    if (req && req.date) {
+      line.textContent = `Demande envoyée le ${window.AtelierClock.dateLabel(req.date)} — vous recevrez vos données par e-mail.`;
     }
-    // inside an embedded page (e.g. a published artifact) the download may be
-    // silently blocked: also offer the data to copy
-    if (!started || inFrame) showExportModal(json);
-    else toast("Téléchargement lancé.");
+  }
+  const updateSend = () => { requestSend.disabled = !boxes.some((b) => b.checked); };
+
+  // back to the form view, all boxes checked
+  function resetRequestModal() {
+    boxes.forEach((b) => { b.checked = true; });
+    requestNotice.hidden = true;
+    requestForm.hidden = false;
+    requestDone.hidden = true;
+    requestDialog.setAttribute("aria-labelledby", "request-title");
+    updateSend();
+  }
+
+  $("data-request").addEventListener("click", () => {
+    resetRequestModal();
+    showModal(requestModal, boxes[0]);
+  });
+  boxes.forEach((b) => b.addEventListener("change", updateSend));
+
+  requestForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const categories = boxes.filter((b) => b.checked).map((b) => b.value);
+    if (!categories.length) return;
+    const email = (S.get().email || "").trim();
+    if (!email) {
+      // no address to send the copy to: ask for it first
+      requestNotice.hidden = false;
+      $("request-add-email").focus();
+      return;
+    }
+    Store.saveProfile({ dataRequest: { date: window.AtelierClock.nowISO(), categories } });
+    renderRequestStatus();
+    $("request-done-text").textContent = `Vous recevrez vos données par e-mail à ${email} sous 30 jours maximum.`;
+    requestForm.hidden = true;
+    requestDone.hidden = false;
+    requestDialog.setAttribute("aria-labelledby", "request-done-title");
+    $("request-done-title").focus({ preventScroll: true });
   });
 
-  $("export-copy").addEventListener("click", async () => {
-    const area = $("export-json");
-    let copied = false;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(area.value);
-        copied = true;
-      }
-    } catch (_) { copied = false; }
-    if (!copied) {
-      try {
-        area.focus();
-        area.select();
-        copied = document.execCommand("copy");
-      } catch (_) { copied = false; }
-    }
-    toast(copied ? "Données copiées." : "Sélectionnez le texte puis copiez-le.");
+  $("request-add-email").addEventListener("click", () => {
+    hideModal(false);
+    openEdit();
+    inputs.email.focus();
   });
 
   /* ---------------- Supprimer mon compte ---------------- */
@@ -333,4 +326,5 @@
   /* ---------------- start ---------------- */
   renderInfo();
   renderHabits();
+  renderRequestStatus();
 })();
