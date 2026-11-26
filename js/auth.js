@@ -175,6 +175,7 @@
         button.removeAttribute("aria-busy");
         const firstName = form.querySelector('[name="firstname"]');
         const lastName = form.querySelector('[name="lastname"]');
+        const email = form.querySelector('[name="email"]');
 
         // simulated login (localStorage) and post-login destination
         const S = window.AtelierSession;
@@ -182,9 +183,9 @@
         if (S) {
           if (mode === "signup") {
             const company = form.querySelector('[name="company"]');
-            S.login({ firstName: firstName.value, lastName: lastName.value, company: company ? company.value : "", existingClient: clientBox.checked });
+            S.login({ firstName: firstName.value, lastName: lastName.value, company: company ? company.value : "", email: email ? email.value : "", existingClient: clientBox.checked });
           } else {
-            S.login({ firstName: "Mira", lastName: "Koné", company: "Maison Koné", existingClient: true });
+            S.login({ firstName: "Mira", lastName: "Koné", company: "Maison Koné", email: email ? email.value : "", existingClient: true });
           }
         }
         document.getElementById("success-cta").setAttribute("href", next);

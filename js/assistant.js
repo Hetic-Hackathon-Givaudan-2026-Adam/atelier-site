@@ -178,12 +178,23 @@
     return list.map(({ liked: _old, ...b }) => (liked[b.name] ? { ...b, liked: liked[b.name] } : b));
   }
   // requirements shared by at least 2 of the client's projects
-  function usualConstraints() {
+  function inferredConstraints() {
     const count = {};
     clientProjects().forEach((p) => ((p.brief && p.brief.constraints) || []).forEach((c) => {
       if (c !== "Aucune") count[c] = (count[c] || 0) + 1;
     }));
     return Object.keys(count).filter((c) => count[c] >= 2);
+  }
+  // the requirements edited by the client in Mon profil, or null when never edited
+  function profileConstraints() {
+    const P = window.AtelierStore && window.AtelierStore.profile ? window.AtelierStore.profile() : null;
+    if (!P || !P.edited || !Array.isArray(P.usualConstraints)) return null;
+    return P.usualConstraints.filter((c) => typeof c === "string" && c && c !== "Aucune");
+  }
+  // Mon profil wins over the history (an empty list = no pre-selection)
+  function usualConstraints() {
+    const own = profileConstraints();
+    return own || inferredConstraints();
   }
 
   /* Blends the client said "ne convient pas" to (Mes commandes → sample
@@ -557,20 +568,30 @@
     const next = { ...s, ...updates };
     const nextStep = SC.order[SC.order.indexOf(s.step) + 1] || "reveal";
     const turn = ask(nextStep, next, { projectUpdates: updates });
-    if (nextStep === "constraints" && s.existingClient) {
-      // usual requirements of a returning client, pre-selected (can be unselected)
-      const usual = usualConstraints();
-      if (usual.length) {
-        turn.selected = usual;
-        turn.hint = "Pré-sélectionné comme pour vos projets précédents.";
-      }
-    }
+    if (nextStep === "constraints") preselectUsual(turn, s);
     if (nextStep === "reveal") {
       // a resumed project whose brief was edited gets its own proposed blends again;
       // a new project gets the blends of its olfactory direction
       turn.blends = next.blends && next.blends.length ? offered(next) : blendSet(directionOf(next));
       turn.projectUpdates.blends = turn.blends;
     }
+    return turn;
+  }
+
+  /* usual requirements pre-selected on the "constraints" question (can be
+     unselected): those of Mon profil when edited (any client), otherwise those
+     inferred from a returning client's history */
+  function preselectUsual(turn, s) {
+    const own = profileConstraints();
+    const usual = own || (s.existingClient ? inferredConstraints() : []);
+    const chips = Array.isArray(turn.chips) ? turn.chips : [];
+    const picked = usual.filter((c) => !chips.length || chips.includes(c));
+    if (!picked.length) {
+      if (own) { delete turn.selected; delete turn.hint; } // the client removed them all
+      return turn;
+    }
+    turn.selected = picked;
+    turn.hint = own ? "Pré-sélectionné d'après vos habitudes (Mon profil)." : "Pré-sélectionné comme pour vos projets précédents.";
     return turn;
   }
 
@@ -581,7 +602,11 @@
     const API = window.AtelierAPI;
     if (API && (await API.ready())) {
       try {
-        return await API.chat(projectState, userInput);
+        const turn = await API.chat(projectState, userInput);
+        // the API context has no field for the habits of Mon profil: they are
+        // applied to the suggestion chips of its "constraints" question
+        if (turn && turn.step === "constraints" && profileConstraints()) preselectUsual(turn, projectState || {});
+        return turn;
       } catch (err) {
         console.info("[Atelier] IA locale sans réponse pour ce message : simulation.");
         API.markDown();
@@ -611,5 +636,7 @@
     getAssistantTurn, simulatedTurn, projectName, blends: SC.blends,
     // helpers for the brief import review (later: returned by the RAG API)
     fieldChoices, notesFor: (ambiance) => notesFor(ambiance || []), potentialOf,
+    // Mon profil → "Mes habitudes"
+    inferredConstraints, usualConstraints, constraintChips: () => SC.steps.constraints.chips.filter((c) => c !== "Aucune"),
   };
 })();

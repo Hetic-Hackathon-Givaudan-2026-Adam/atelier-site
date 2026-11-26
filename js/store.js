@@ -12,6 +12,8 @@ window.AtelierStore = (() => {
   const CONVERSATION = "givaudanAtelier.conversation";
   // blends the client said "ne convient pas" to — never proposed again
   const REJECTED = "givaudanAtelier.rejectedBlends";
+  // Mon profil → "Mes habitudes": { usualConstraints: [...], edited: true }
+  const PROFILE = "givaudanAtelier.profile";
 
   const load = (key) => {
     try {
@@ -67,6 +69,20 @@ window.AtelierStore = (() => {
       if (name && !list.includes(name)) { list.push(name); save(REJECTED, list); }
     },
     orders: () => load(ORDERS),
+    /* the client's own preferences (Mon profil), or null when never edited */
+    profile() {
+      try {
+        const v = JSON.parse(localStorage.getItem(PROFILE));
+        return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+      } catch (_) {
+        return null;
+      }
+    },
+    saveProfile(patch) {
+      const next = { ...(this.profile() || {}), ...patch };
+      try { localStorage.setItem(PROFILE, JSON.stringify(next)); } catch (_) { /* storage blocked */ }
+      return next;
+    },
     /* every project to display: samples + saved, merged BY ID (the saved
        version wins), newest first — each project appears only once */
     listProjects() {
@@ -109,7 +125,7 @@ window.AtelierStore = (() => {
     reset() {
       try {
         // also the actions of the Espace commercial (Givaudan side of the demo)
-        [PROJECTS, ORDERS, CONVERSATION, REJECTED, "givaudanAtelier.salesActions", "givaudanAtelier.messages", "givaudanAtelier.salesInbox"].forEach((k) => localStorage.removeItem(k));
+        [PROJECTS, ORDERS, CONVERSATION, REJECTED, PROFILE, "givaudanAtelier.salesActions", "givaudanAtelier.messages", "givaudanAtelier.salesInbox"].forEach((k) => localStorage.removeItem(k));
         sessionStorage.removeItem(CONVERSATION);
       } catch (_) { /* storage blocked */ }
     },

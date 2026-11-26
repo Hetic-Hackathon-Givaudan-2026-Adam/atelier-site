@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr" data-protected>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mon profil — Givaudan Atelier</title>
+  <meta name="description" content="Vos informations, vos habitudes et vos données Givaudan Atelier. Prototype hackathon HETIC × Givaudan 2026." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%23E6007E'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/account.css" />
+  <link rel="stylesheet" href="css/profil.css" />
+  <script src="js/clock.js"></script>
+  <script src="js/messages-store.js"></script>
+  <script src="js/session.js"></script>
+</head>
+<body class="account-page profile-page">
+  <header class="site-header is-solid">
+    <a href="./" class="brand">Givaudan Atelier</a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Ouvrir le menu">
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
+    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
+      <a href="mes-projets" class="nav-link">Mes projets</a>
+      <a href="commandes" class="nav-link">Mes commandes</a>
+      <a href="connexion" class="btn btn-outline btn-small" data-signin>Se connecter</a>
+    </nav>
+  </header>
+
+  <main class="space" id="contenu">
+    <div class="space-inner">
+      <section class="welcome rise" aria-labelledby="profile-title">
+        <div>
+          <span class="eyebrow">Espace client</span>
+          <h1 class="space-title" id="profile-title">Mon <em>profil</em>.</h1>
+          <p class="space-sub">Vos informations, vos habitudes et vos données, au même endroit.</p>
+        </div>
+      </section>
+
+      <div class="profile-grid">
+        <div class="profile-col">
+          <!-- ================= Mes informations ================= -->
+          <section class="side-card profile-card rise" style="--d: 0.08s" aria-labelledby="info-title">
+            <div class="profile-card-head">
+              <h2 class="side-title" id="info-title">Mes informations</h2>
+              <button type="button" class="btn btn-outline btn-small" id="info-edit" aria-controls="info-form">Modifier</button>
+            </div>
+
+            <dl class="profile-info" id="info-view">
+              <div><dt>Prénom</dt><dd data-info="firstName"></dd></div>
+              <div><dt>Nom</dt><dd data-info="lastName"></dd></div>
+              <div><dt>Entreprise</dt><dd data-info="company"></dd></div>
+              <div><dt>E-mail</dt><dd data-info="email"></dd></div>
+              <div><dt>Statut</dt><dd data-info="status"></dd></div>
+            </dl>
+
+            <form class="profile-form" id="info-form" novalidate hidden>
+              <div class="profile-form-row">
+                <div class="pfield">
+                  <label for="pf-firstname">Prénom</label>
+                  <input class="pinput" type="text" id="pf-firstname" name="firstName" autocomplete="given-name" required data-label="votre prénom" />
+                  <p class="pfield-error" id="pf-firstname-error" aria-live="polite"></p>
+                </div>
+                <div class="pfield">
+                  <label for="pf-lastname">Nom</label>
+                  <input class="pinput" type="text" id="pf-lastname" name="lastName" autocomplete="family-name" required data-label="votre nom" />
+                  <p class="pfield-error" id="pf-lastname-error" aria-live="polite"></p>
+                </div>
+              </div>
+              <div class="pfield">
+                <label for="pf-company">Entreprise</label>
+                <input class="pinput" type="text" id="pf-company" name="company" autocomplete="organization" required data-label="le nom de votre entreprise" />
+                <p class="pfield-error" id="pf-company-error" aria-live="polite"></p>
+              </div>
+              <div class="pfield">
+                <label for="pf-email">E-mail <span class="pfield-optional">(facultatif)</span></label>
+                <input class="pinput" type="email" id="pf-email" name="email" autocomplete="email" inputmode="email" />
+                <p class="pfield-error" id="pf-email-error" aria-live="polite"></p>
+              </div>
+              <div class="profile-form-actions">
+                <button type="submit" class="btn btn-primary btn-small">Enregistrer</button>
+                <button type="button" class="btn btn-outline btn-small" id="info-cancel">Annuler</button>
+              </div>
+            </form>
+          </section>
+
+          <!-- ================= Mes habitudes ================= -->
+          <section class="side-card profile-card rise" style="--d: 0.2s" aria-labelledby="habits-title">
+            <h2 class="side-title" id="habits-title">Mes habitudes</h2>
+            <p class="profile-subtitle" id="habits-current-label">Vos exigences habituelles</p>
+            <ul class="habit-list" id="habits-current" aria-labelledby="habits-current-label"></ul>
+            <p class="profile-muted" id="habits-empty" hidden>Aucune exigence habituelle pour l'instant.</p>
+            <p class="profile-subtitle" id="habits-add-label">Ajouter une exigence</p>
+            <div class="habit-add" id="habits-add" role="group" aria-labelledby="habits-add-label"></div>
+            <p class="profile-muted">L'assistant vous les proposera au début de chaque nouveau projet.</p>
+            <p class="sr-only" id="habits-live" aria-live="polite"></p>
+          </section>
+        </div>
+
+        <div class="profile-col">
+          <!-- ================= Mon interlocutrice ================= -->
+          <section class="side-card contact profile-card rise" style="--d: 0.14s" aria-labelledby="contact-title">
+            <h2 class="side-title" id="contact-title">Mon interlocutrice</h2>
+            <div data-contact-mode="client">
+              <div class="contact-person">
+                <span class="contact-avatar" aria-hidden="true">CM</span>
+                <div>
+                  <p class="contact-name">Claire Martin</p>
+                  <p class="contact-role">Responsable de compte, Fragrance &amp; Beauty</p>
+                </div>
+              </div>
+              <p class="contact-line">Votre interlocutrice pour vos projets et commandes.</p>
+              <a href="messages" class="side-link">Lui écrire <span aria-hidden="true">→</span></a>
+            </div>
+            <div data-contact-mode="new" hidden>
+              <p class="profile-text">Un interlocuteur vous sera attribué dès votre premier projet.</p>
+              <a href="messages" class="side-link">Écrire à notre équipe <span aria-hidden="true">→</span></a>
+            </div>
+          </section>
+
+          <!-- ================= Mes données ================= -->
+          <section class="side-card profile-card rise" style="--d: 0.2s" aria-labelledby="data-title">
+            <h2 class="side-title" id="data-title">Mes données</h2>
+            <p class="profile-text">Ce prototype garde vos données uniquement dans ce navigateur. Rien n'est envoyé à un serveur externe ; l'assistant IA fonctionne en local.</p>
+            <p class="profile-subtitle">Ce que nous gardons, et pourquoi</p>
+            <ul class="profile-list">
+              <li><strong>Informations de compte</strong> : pour vous identifier.</li>
+              <li><strong>Projets et briefs</strong> : pour préparer vos assemblages.</li>
+              <li><strong>Commandes et avis</strong> : pour suivre vos échantillons.</li>
+              <li><strong>Messages</strong> : pour échanger avec votre interlocutrice.</li>
+            </ul>
+            <p class="profile-text">Vous pouvez à tout moment télécharger ou supprimer vos données.</p>
+            <div class="profile-actions">
+              <button type="button" class="btn btn-outline btn-small" id="data-download">Télécharger mes données</button>
+              <button type="button" class="btn btn-small btn-danger-outline" id="data-delete" aria-haspopup="dialog">Supprimer mon compte</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Confirmation: supprimer le compte -->
+  <div class="modal modal--small" id="delete-modal" hidden>
+    <div class="modal-backdrop" data-modal-dismiss></div>
+    <div class="modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-text" tabindex="-1">
+      <button class="modal-close" type="button" aria-label="Fermer" data-modal-dismiss>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <span class="eyebrow">Mon profil</span>
+      <h2 id="delete-title" class="modal-title">Supprimer votre <em>compte</em> ?</h2>
+      <p id="delete-text" class="modal-text">Vos projets, commandes, messages et préférences seront effacés de ce navigateur. Cette action est définitive.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-modal-dismiss>Annuler</button>
+        <button type="button" class="btn btn-danger" id="delete-confirm">Supprimer définitivement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback when the download is blocked: the JSON to copy -->
+  <div class="modal" id="export-modal" hidden>
+    <div class="modal-backdrop" data-modal-dismiss></div>
+    <div class="modal-dialog export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-title" aria-describedby="export-text" tabindex="-1">
+      <button class="modal-close" type="button" aria-label="Fermer" data-modal-dismiss>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <span class="eyebrow">Mes données</span>
+      <h2 id="export-title" class="modal-title">Vos <em>données</em></h2>
+      <p id="export-text" class="modal-text">Si le téléchargement n'a pas démarré, copiez vos données ci-dessous et collez-les dans un fichier.</p>
+      <label class="sr-only" for="export-json">Vos données au format JSON</label>
+      <textarea class="export-json" id="export-json" readonly rows="12" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="export-copy">Copier</button>
+        <button type="button" class="btn btn-outline" data-modal-dismiss>Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+  <footer class="site-footer">
+    <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026</p>
+  </footer>
+
+  <script src="js/ui.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/scenario.js"></script>
+  <script src="js/assistant.js"></script>
+  <script src="js/profil.js"></script>
+</body>
+</html>

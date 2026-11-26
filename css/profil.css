@@ -1,0 +1,118 @@
+/* =========================================================
+   Givaudan Atelier — Mon profil
+   Builds on style.css (tokens, buttons, chips, modal) and account.css
+   (space, welcome, side cards, contact card, toast)
+   ========================================================= */
+
+.profile-page { --error: #b0163f; }
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+  align-items: start;
+}
+.profile-col { display: grid; gap: clamp(20px, 2.4vw, 32px); }
+
+.profile-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.profile-card-head .side-title { margin: 0; }
+
+/* ---------------- Mes informations ---------------- */
+.profile-info { margin: 0; display: grid; gap: 0; }
+.profile-info > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.6fr) minmax(0, 1.4fr);
+  gap: 4px 20px;
+  padding: 13px 0;
+  border-top: 1px solid rgba(20, 20, 20, 0.1);
+}
+.profile-info > div:first-child { border-top: 0; padding-top: 4px; }
+.profile-info dt { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); align-self: center; }
+.profile-info dd { margin: 0; font-size: 1rem; color: var(--ink); overflow-wrap: anywhere; }
+.profile-info dd.is-empty { color: var(--muted); font-style: italic; }
+
+.profile-form { margin-top: 4px; }
+.profile-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.pfield { margin-bottom: 18px; }
+.pfield label { display: block; margin-bottom: 8px; font-size: 0.86rem; color: var(--ink-soft); }
+.pfield-optional { color: var(--muted); font-size: 0.8rem; }
+.pinput {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(20, 20, 20, 0.22);
+  border-radius: 6px;
+  background: #fbfaf8;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.pinput:hover { border-color: rgba(20, 20, 20, 0.38); }
+.pinput:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(230, 0, 126, 0.14); }
+.pfield.has-error .pinput { border-color: var(--error); }
+.pfield-error { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--error); }
+.pfield-error:not(:empty) { margin-top: 8px; }
+.profile-form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+
+/* ---------------- texts ---------------- */
+.profile-text { margin: 0 0 16px; font-size: 0.95rem; line-height: 1.6; color: var(--ink-soft); max-width: 40em; }
+.profile-subtitle { margin: 4px 0 10px; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.profile-muted { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted); }
+.profile-list { margin: 0 0 18px; padding: 0; list-style: none; display: grid; gap: 8px; }
+.profile-list li { position: relative; padding-left: 18px; font-size: 0.93rem; line-height: 1.5; color: var(--ink-soft); }
+.profile-list li::before { content: ""; position: absolute; left: 2px; top: 0.62em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.profile-list strong { font-weight: 500; color: var(--ink); }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+.profile-card .side-link { margin-top: 0; }
+
+/* ---------------- Mes habitudes ---------------- */
+.habit-list { margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.habit-list:empty { display: none; }
+.habit-add { display: flex; flex-wrap: wrap; gap: 8px; }
+.habit-chip, .habit-add-chip { min-height: 38px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; }
+.habit-x { font-size: 1.05rem; line-height: 1; opacity: 0.75; }
+.habit-chip:hover .habit-x { opacity: 1; }
+.habit-add-chip { color: var(--ink-soft); }
+.habit-chip:focus-visible, .habit-add-chip:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+
+/* ---------------- danger buttons ---------------- */
+.btn-danger-outline { border-color: var(--error); color: var(--error); background: transparent; }
+.btn-danger-outline:hover { background: var(--error); border-color: var(--error); color: #fff; }
+.btn-danger { background: var(--error); border-color: var(--error); color: #fff; }
+.btn-danger:hover { background: #8f1033; border-color: #8f1033; }
+
+/* ---------------- export fallback ---------------- */
+.export-dialog { width: min(640px, 100%); }
+.export-json {
+  display: block;
+  width: 100%;
+  margin: -10px 0 26px;
+  padding: 14px;
+  border: 1px solid rgba(20, 20, 20, 0.18);
+  border-radius: 6px;
+  background: #fbfaf8;
+  color: var(--ink-soft);
+  font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+}
+.export-json:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(230, 0, 126, 0.14); }
+
+/* ---------------- responsive ---------------- */
+@media (max-width: 960px) {
+  .profile-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .profile-form-row { grid-template-columns: 1fr; }
+  .profile-info > div { grid-template-columns: 1fr; gap: 2px; }
+  .profile-actions .btn, .profile-form-actions .btn { flex: 1 1 100%; }
+}

@@ -9,8 +9,9 @@
   const KEY = "givaudanAtelier.session";
   const NEXT_KEY = "atelierNext"; // destination kept in sessionStorage across the login page
   const REORDER_KEY = "atelierOpenReorder"; // "1" → open the reorder modal on Mes commandes
+  const DELETED_KEY = "atelierAccountDeleted"; // "1" → "Votre compte a été supprimé." on the next page
   // only these pages are accepted as a post-login destination (no open redirect)
-  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages"];
+  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "profil"];
   const DEFAULT_NEXT = "mes-projets";
 
   // "creer-projet", "/creer-projet", "creer-projet.html" → "creer-projet"; anything else → null
@@ -35,23 +36,30 @@
   const api = {
     get: read,
     isLoggedIn: () => Boolean(read()),
-    login({ firstName, lastName, company, existingClient } = {}) {
+    login({ firstName, lastName, company, email, existingClient } = {}) {
       const s = {
         firstName: (firstName || "").trim() || "Mira",
         lastName: (lastName || "").trim() || "Koné",
         company: (company || "").trim() || "Maison Koné",
+        email: (email || "").trim(), // optional ("" → "Non renseigné" in Mon profil)
         existingClient: Boolean(existingClient),
         since: Date.now(),
       };
       write(s);
       return s;
     },
+    // update some fields (Mon profil), then repaint the account menu of this page
     update(patch) {
       const s = read();
       if (!s) return null;
       Object.assign(s, patch);
       write(s);
+      paintAccount(s);
       return s;
+    },
+    // Mon profil → "Supprimer mon compte": message shown once on the next page
+    flagDeleted() {
+      try { sessionStorage.setItem(DELETED_KEY, "1"); } catch (_) { /* storage blocked */ }
     },
     logout() {
       try { localStorage.removeItem(KEY); } catch (_) { /* ignore */ }
@@ -110,7 +118,40 @@
   }
 
   /* ---------------- Header ---------------- */
+  // initials, name and status of the account menu (again after AtelierSession.update)
+  function paintAccount(s) {
+    const account = document.querySelector(".site-header .account");
+    if (!account || !s) return;
+    const name = `${s.firstName} ${s.lastName}`;
+    account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
+    account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
+    account.querySelector(".account-name").textContent = name;
+    account.querySelector(".account-status").textContent = s.existingClient ? "Client Givaudan" : "Nouveau client";
+  }
+
+  // after "Supprimer mon compte": a short message on the home page (self-styled,
+  // since the home page has no toast of its own)
+  function showDeletedNotice() {
+    let flagged = false;
+    try {
+      flagged = sessionStorage.getItem(DELETED_KEY) === "1";
+      sessionStorage.removeItem(DELETED_KEY);
+    } catch (_) { /* storage blocked */ }
+    if (!flagged) return;
+    const note = document.createElement("p");
+    note.setAttribute("role", "status");
+    note.textContent = "Votre compte a été supprimé.";
+    note.style.cssText = "position:fixed;left:50%;bottom:28px;z-index:200;margin:0;padding:12px 22px;transform:translateX(-50%);"
+      + "background:#f7f6f3;color:#141414;border:1px solid rgba(20,20,20,.1);border-radius:999px;"
+      + "box-shadow:0 22px 48px -26px rgba(20,20,20,.4);font-family:var(--font-display,serif);font-size:1.05rem;"
+      + "white-space:nowrap;transition:opacity .5s ease;";
+    document.body.append(note);
+    setTimeout(() => { note.style.opacity = "0"; }, 3600);
+    setTimeout(() => note.remove(), 4200);
+  }
+
   function renderHeader() {
+    showDeletedNotice();
     const s = read();
     const hasModal = Boolean(document.getElementById("auth-modal"));
 
@@ -168,15 +209,12 @@
             <span class="account-status"></span>
           </span>
         </div>
-        <a href="#" class="account-item">Mon profil</a>
+        <a href="profil" class="account-item">Mon profil</a>
         <button type="button" class="account-item" data-logout>Se déconnecter</button>
       </div>`;
-    const name = `${s.firstName} ${s.lastName}`;
-    account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
-    account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
-    account.querySelector(".account-name").textContent = name;
-    account.querySelector(".account-status").textContent = s.existingClient ? "Client Givaudan" : "Nouveau client";
+    if (/\/profil(\.html)?$/.test(location.pathname)) account.querySelector('a[href="profil"]').setAttribute("aria-current", "page");
     signIn.replaceWith(account);
+    paintAccount(s);
     document.documentElement.classList.add("is-logged-in");
 
     const btn = account.querySelector(".avatar-btn");
