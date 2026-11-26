@@ -40,7 +40,7 @@
 
 .profile-form { margin-top: 4px; }
 .profile-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
-.pfield { margin-bottom: 18px; }
+.pfield { margin-bottom: 10px; }
 .pfield label { display: block; margin-bottom: 8px; font-size: 0.86rem; color: var(--ink-soft); }
 .pfield-optional { color: var(--muted); font-size: 0.8rem; }
 .pinput {
@@ -59,8 +59,17 @@
 .pinput:hover { border-color: rgba(20, 20, 20, 0.38); }
 .pinput:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(230, 0, 126, 0.14); }
 .pfield.has-error .pinput { border-color: var(--error); }
-.pfield-error { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--error); }
-.pfield-error:not(:empty) { margin-top: 8px; }
+/* the error line always keeps its space (one line), so showing or hiding an
+   error never moves the fields and buttons below */
+.pfield-error {
+  min-height: calc(0.8rem * 1.45);
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--error);
+  visibility: hidden;
+}
+.pfield-error:not(:empty) { visibility: visible; }
 .profile-form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 
 /* ---------------- texts ---------------- */

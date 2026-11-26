@@ -66,10 +66,9 @@
 
   function messageFor(input) {
     const v = input.value.trim();
-    if (input.required && !v) return `Veuillez renseigner ${input.dataset.label}.`;
-    if (input.type === "email" && v && !EMAIL_RE.test(v)) {
-      return "Veuillez saisir une adresse e-mail valide, par exemple prenom.nom@entreprise.com.";
-    }
+    // short messages: one line, even at 375 px (the line's space is reserved)
+    if (input.required && !v) return `Renseignez ${input.dataset.label}.`;
+    if (input.type === "email" && v && !EMAIL_RE.test(v)) return "E-mail invalide, ex. : nom@entreprise.com";
     return "";
   }
   function setError(input, message) {
@@ -103,9 +102,12 @@
     editBtn.focus({ preventScroll: true });
   }
 
+  // the error goes away while typing, as soon as the value is valid (never on
+  // blur: a click on "Enregistrer" must not move the button under the pointer);
+  // the full validation runs on submit
   Object.values(inputs).forEach((input) => {
     input.addEventListener("input", () => {
-      if (input.getAttribute("aria-invalid") === "true") setError(input, messageFor(input));
+      if (input.getAttribute("aria-invalid") === "true" && !messageFor(input)) setError(input, "");
     });
   });
   editBtn.addEventListener("click", openEdit);
