@@ -24,11 +24,8 @@
    projectState also carries projectId / projectName / blends / favorite
    when an existing project is resumed. "message" may contain *italic* words.
 
-   When the local RAG API answers (js/api.js → POST /atelier/chat), its turn
-   is returned as is (same shape; blends may also carry toConfirm,
-   technicalName; a reveal with noMatch: true has no blends → expert path).
-   Otherwise simulatedTurn() — the scripted engine below, reading
-   js/scenario.js with simple keyword detection — answers.
+   FastAPI supplies live turns. Saved profile preferences preselect the
+   requirements chips when a project is created.
    ========================================================= */
 (() => {
   "use strict";
@@ -187,9 +184,7 @@
   }
   // the requirements edited by the client in Mon profil, or null when never edited
   function profileConstraints() {
-    const P = window.AtelierStore && window.AtelierStore.profile ? window.AtelierStore.profile() : null;
-    if (!P || !P.edited || !Array.isArray(P.usualConstraints)) return null;
-    return P.usualConstraints.filter((c) => typeof c === "string" && c && c !== "Aucune");
+    return window.AtelierStore?.usualConstraints() ?? null;
   }
   // Mon profil wins over the history (an empty list = no pre-selection)
   function usualConstraints() {
@@ -578,41 +573,15 @@
     return turn;
   }
 
-  /* usual requirements pre-selected on the "constraints" question (can be
-     unselected): those of Mon profil when edited (any client), otherwise those
-     inferred from a returning client's history */
-  function preselectUsual(turn, s) {
-    const own = profileConstraints();
-    const usual = own || (s.existingClient ? inferredConstraints() : []);
-    const chips = Array.isArray(turn.chips) ? turn.chips : [];
-    const picked = usual.filter((c) => !chips.length || chips.includes(c));
-    if (!picked.length) {
-      if (own) { delete turn.selected; delete turn.hint; } // the client removed them all
-      return turn;
-    }
-    turn.selected = picked;
-    turn.hint = own ? "Pré-sélectionné d'après vos habitudes (Mon profil)." : "Pré-sélectionné comme pour vos projets précédents.";
-    return turn;
-  }
-
-  /* ---------------- the single entry point ----------------
-     Local RAG API when it answers (js/api.js), otherwise the scripted engine.
-     A failed call falls back to the simulation for THIS message only. */
   async function getAssistantTurn(projectState, userInput) {
-    const API = window.AtelierAPI;
-    if (API && (await API.ready())) {
-      try {
-        const turn = await API.chat(projectState, userInput);
-        // the API context has no field for the habits of Mon profil: they are
-        // applied to the suggestion chips of its "constraints" question
-        if (turn && turn.step === "constraints" && profileConstraints()) preselectUsual(turn, projectState || {});
-        return turn;
-      } catch (err) {
-        console.info("[Atelier] IA locale sans réponse pour ce message : simulation.");
-        API.markDown();
-      }
+    const turn = await AtelierAPI.chat(projectState, userInput);
+    const usual = profileConstraints();
+    if (turn?.step === "constraints" && usual) {
+      turn.selected = usual.filter((item) => turn.chips?.includes(item));
+      if (turn.selected.length) turn.hint = "Pré-sélectionné d'après vos habitudes (Mon profil).";
+      else delete turn.hint;
     }
-    return simulatedTurn(projectState, userInput);
+    return turn;
   }
 
   /* answer lists of one brief field, for the review card of an imported brief

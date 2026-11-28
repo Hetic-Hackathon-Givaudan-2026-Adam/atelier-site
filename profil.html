@@ -14,6 +14,9 @@
   <link rel="stylesheet" href="css/profil.css" />
   <script src="js/clock.js"></script>
   <script src="js/messages-store.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2" integrity="sha384-7i/4BYWz4Mn+lJfg2HWfEPfZQ7tmFKF3CTSKlXBpxWjNlLjcg+T6smpHG4gLmU1u" crossorigin="anonymous"></script>
+  <script src="js/runtime-config.js"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/session.js"></script>
 </head>
 <body class="account-page profile-page">
@@ -76,8 +79,8 @@
                 <p class="pfield-error" id="pf-company-error" aria-live="polite"></p>
               </div>
               <div class="pfield">
-                <label for="pf-email">E-mail <span class="pfield-optional">(facultatif)</span></label>
-                <input class="pinput" type="email" id="pf-email" name="email" autocomplete="email" inputmode="email" />
+                <label for="pf-email">E-mail</label>
+                <input class="pinput" type="email" id="pf-email" name="email" required autocomplete="email" inputmode="email" />
                 <p class="pfield-error" id="pf-email-error" aria-live="polite"></p>
               </div>
               <div class="profile-form-actions">
@@ -155,15 +158,22 @@
       </button>
       <span class="eyebrow">Mon profil</span>
       <h2 id="delete-title" class="modal-title">Supprimer votre <em>compte</em> ?</h2>
-      <p id="delete-text" class="modal-text">Vos projets, commandes, messages et préférences seront effacés de ce navigateur. Cette action est définitive.</p>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-outline" data-modal-dismiss>Annuler</button>
-        <button type="button" class="btn btn-danger" id="delete-confirm">Supprimer définitivement</button>
-      </div>
+      <p id="delete-text" class="modal-text">Votre compte, vos projets et leurs échanges, ainsi que vos préférences, seront supprimés. Cette action est définitive.</p>
+      <form id="delete-form">
+        <div class="pfield">
+          <label for="delete-password">Votre mot de passe</label>
+          <input class="pinput" type="password" id="delete-password" autocomplete="current-password" required />
+          <p class="pfield-error" id="delete-error" role="alert"></p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" data-modal-dismiss>Annuler</button>
+          <button type="submit" class="btn btn-danger" id="delete-confirm">Supprimer définitivement</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Demander une copie de mes données (simulated request, nothing is sent) -->
+  <!-- Demander une copie de mes données -->
   <div class="modal modal--small" id="request-modal" hidden>
     <div class="modal-backdrop" data-modal-dismiss></div>
     <div class="modal-dialog request-dialog" role="dialog" aria-modal="true" aria-labelledby="request-title" tabindex="-1">
@@ -224,9 +234,12 @@
 
   <script src="js/ui.js"></script>
   <script src="js/samples.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/store.js"></script>
   <script src="js/orders.js"></script>
   <script src="js/scenario.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/assistant.js"></script>
   <script src="js/profil.js"></script>
 </body>

@@ -1,15 +1,8 @@
-/* =========================================================
-   Givaudan Atelier — Mon profil (/profil)
-   Account information (session), dedicated contact, usual requirements
-   (localStorage "givaudanAtelier.profile", read by js/assistant.js),
-   data copy request (simulated) and account deletion. Protected page (session.js guard).
-   No API call on this page.
-   ========================================================= */
-(() => {
+(async () => {
   "use strict";
 
   const S = window.AtelierSession;
-  if (!S || !S.get()) return; // session.js already redirected to the login page
+  if (!await S.ready) return;
 
   const Store = window.AtelierStore;
   const A = window.AtelierAssistant;
@@ -69,6 +62,7 @@
       const dd = view.querySelector('[data-info="email"]');
       dd.textContent = "";
       dd.append(emailSpan(s.email));
+      if (s.pendingEmail) dd.append(h("small", {}, " · Confirmation en attente pour ", emailSpan(s.pendingEmail)));
     }
     set("status", s.existingClient ? "Client Givaudan" : "Nouveau client");
   }
@@ -105,6 +99,7 @@
     inputs.firstName.focus();
   }
   function closeEdit() {
+    if (form.hasAttribute("aria-busy")) return;
     form.hidden = true;
     view.hidden = false;
     editBtn.hidden = false;
@@ -124,7 +119,7 @@
   form.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { e.preventDefault(); closeEdit(); }
   });
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     let firstInvalid = null;
     Object.values(inputs).forEach((input) => {
@@ -133,17 +128,41 @@
       if (msg && !firstInvalid) firstInvalid = input;
     });
     if (firstInvalid) { firstInvalid.focus(); return; }
-    // the header menu (initials, name) is repainted by AtelierSession.update;
-    // the other pages read the session when they load
-    S.update({
-      firstName: inputs.firstName.value.trim(),
-      lastName: inputs.lastName.value.trim(),
-      company: inputs.company.value.trim(),
-      email: inputs.email.value.trim(),
-    });
-    renderInfo();
-    closeEdit();
-    toast("Vos informations sont enregistrées.");
+    const button = form.querySelector('[type="submit"]');
+    if (button.disabled) return;
+    const email = inputs.email.value.trim();
+    button.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    let saved = false;
+    try {
+      await S.saveProfile({
+        firstName: inputs.firstName.value.trim(),
+        lastName: inputs.lastName.value.trim(),
+        company: inputs.company.value.trim(),
+      });
+      saved = true;
+      const changed = email.toLowerCase() !== S.get().email?.toLowerCase();
+      if (changed && email.toLowerCase() !== S.get().pendingEmail.toLowerCase()) {
+        const { data, error } = await supabaseClient.auth.updateUser(
+          { email }, { emailRedirectTo: new URL("profil", location.href).href },
+        );
+        if (error) throw error;
+        S.get().email = data.user.email;
+        S.get().pendingEmail = data.user.new_email || (data.user.email !== email ? email : "");
+      }
+      form.removeAttribute("aria-busy");
+      closeEdit();
+      toast(S.get().pendingEmail
+        ? "Informations enregistrées. Suivez les liens de confirmation envoyés par e-mail."
+        : "Vos informations sont enregistrées.");
+    } catch (error) {
+      if (saved) setError(inputs.email, "Informations enregistrées. Changement d’e-mail impossible.");
+      else toast("Impossible d’enregistrer vos informations. Réessayez.");
+    } finally {
+      if (S.get()) renderInfo();
+      button.disabled = false;
+      form.removeAttribute("aria-busy");
+    }
   });
 
   /* ================= Mon interlocutrice ================= */
@@ -160,12 +179,20 @@
 
   // what the assistant will propose: Mon profil when edited, otherwise the history
   function currentHabits() {
-    const P = Store.profile();
-    if (P && P.edited && Array.isArray(P.usualConstraints)) return P.usualConstraints.slice();
-    return existing && A && A.inferredConstraints ? A.inferredConstraints() : [];
+    return Store.usualConstraints() ?? (returningClient ? A.inferredConstraints() : []);
   }
-  function saveHabits(list) {
-    Store.saveProfile({ usualConstraints: list, edited: true });
+  let returningClient = existing;
+  async function saveHabits(list, message, focusKey) {
+    const buttons = [...habitsList.querySelectorAll("button"), ...habitsAdd.querySelectorAll("button")];
+    buttons.forEach((button) => { button.disabled = true; });
+    try {
+      await Store.saveUsualConstraints(list);
+      habitsLive.textContent = message;
+      renderHabits(focusKey);
+    } catch {
+      toast("Impossible d’enregistrer vos habitudes. Réessayez.");
+      buttons.forEach((button) => { button.disabled = false; });
+    }
   }
 
   function renderHabits(focusKey) {
@@ -178,9 +205,7 @@
           "aria-label": `Retirer ${c}`,
           onclick: () => {
             const next = currentHabits().filter((x) => x !== c);
-            saveHabits(next);
-            habitsLive.textContent = `${c} retiré de vos habitudes.`;
-            renderHabits({ removed: list.indexOf(c) });
+            saveHabits(next, `${c} retiré de vos habitudes.`, { removed: list.indexOf(c) });
           },
         }, c, h("span", { class: "habit-x", "aria-hidden": "true" }, "×"))));
     });
@@ -192,9 +217,7 @@
       habitsAdd.append(h("button", {
         type: "button", class: "chip habit-add-chip", "data-add": c,
         onclick: () => {
-          saveHabits(currentHabits().concat(c));
-          habitsLive.textContent = `${c} ajouté à vos habitudes.`;
-          renderHabits({ added: c });
+          saveHabits(currentHabits().concat(c), `${c} ajouté à vos habitudes.`, { added: c });
         },
       }, h("span", { "aria-hidden": "true" }, "+ "), c));
     });
@@ -232,6 +255,8 @@
   function hideModal(restoreFocus = true) {
     if (!openModal) return;
     const modal = openModal;
+    if (modal.querySelector("[aria-busy=true]")) return;
+    if (modal.id === "delete-modal") modal.querySelector("form").reset();
     openModal = null;
     modal.classList.remove("is-open");
     document.body.classList.remove("modal-open");
@@ -253,9 +278,7 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  /* ================= Mes données: data copy request =================
-     Prototype: the request is only stored in givaudanAtelier.profile
-     (cleared by Store.reset()); no e-mail is sent. */
+  /* ================= Mes données ================= */
   const requestModal = $("request-modal");
   const requestDialog = requestModal.querySelector(".modal-dialog");
   const requestForm = $("request-form");
@@ -264,16 +287,16 @@
   const requestNotice = $("request-notice");
   const boxes = Array.from(requestForm.querySelectorAll('input[name="categories"]'));
 
-  function renderRequestStatus() {
-    const P = Store.profile();
-    const req = P && P.dataRequest;
+  let latestRequestAt = 0;
+  function renderRequestStatus(req) {
     const line = $("data-request-status");
-    line.hidden = !(req && req.date);
-    if (req && req.date) {
-      line.textContent = `Demande envoyée le ${window.AtelierClock.dateLabel(req.date)} — vous recevrez vos données par e-mail.`;
-    }
+    if (!req || Date.parse(req.created_at) < latestRequestAt) return;
+    latestRequestAt = Date.parse(req.created_at);
+    const statuses = { pending: "En attente", completed: "Traitée", rejected: "Refusée" };
+    line.hidden = false;
+    line.textContent = `Demande du ${window.AtelierClock.dateLabel(req.created_at)} · ${statuses[req.status]}`;
   }
-  const updateSend = () => { requestSend.disabled = !boxes.some((b) => b.checked); };
+  const updateSend = () => { requestSend.disabled = requestForm.hasAttribute("aria-busy") || !boxes.some((b) => b.checked); };
 
   // back to the form view, all boxes checked
   function resetRequestModal() {
@@ -291,7 +314,7 @@
   });
   boxes.forEach((b) => b.addEventListener("change", updateSend));
 
-  requestForm.addEventListener("submit", (e) => {
+  requestForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const categories = boxes.filter((b) => b.checked).map((b) => b.value);
     if (!categories.length) return;
@@ -302,15 +325,24 @@
       $("request-add-email").focus();
       return;
     }
-    Store.saveProfile({ dataRequest: { date: window.AtelierClock.nowISO(), categories } });
-    renderRequestStatus();
-    const doneText = $("request-done-text");
-    doneText.textContent = "";
-    doneText.append("Vous recevrez vos données par e-mail à ", emailSpan(email), " sous 30 jours maximum.");
-    requestForm.hidden = true;
-    requestDone.hidden = false;
-    requestDialog.setAttribute("aria-labelledby", "request-done-title");
-    $("request-done-title").focus({ preventScroll: true });
+    if (requestSend.disabled) return;
+    requestSend.disabled = true;
+    requestForm.setAttribute("aria-busy", "true");
+    try {
+      const req = AtelierData.value(await supabaseClient.from("atelier_data_requests")
+        .insert({ categories }).select("created_at,status").single());
+      renderRequestStatus(req);
+      $("request-done-text").textContent = "Votre demande est en attente de traitement.";
+      requestForm.hidden = true;
+      requestDone.hidden = false;
+      requestDialog.setAttribute("aria-labelledby", "request-done-title");
+      $("request-done-title").focus({ preventScroll: true });
+    } catch {
+      toast("Impossible d’enregistrer votre demande. Réessayez.");
+    } finally {
+      requestForm.removeAttribute("aria-busy");
+      updateSend();
+    }
   });
 
   $("request-add-email").addEventListener("click", () => {
@@ -325,17 +357,33 @@
     // the safe choice gets the focus first
     showModal(deleteModal, deleteModal.querySelector(".modal-actions .btn-outline"));
   });
-  $("delete-confirm").addEventListener("click", () => {
-    Store.reset(); // projects, orders, messages, preferences…
-    S.logout();
-    S.rememberNext(null);
-    S.rememberIntent(null);
-    S.flagDeleted(); // "Votre compte a été supprimé." on the home page
-    location.href = "./";
+  const deleteForm = $("delete-form");
+  const deleteButton = $("delete-confirm");
+  deleteForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (deleteButton.disabled) return;
+    const verifiedPassword = $("delete-password").value;
+    $("delete-password").value = "";
+    $("delete-error").textContent = "";
+    deleteButton.disabled = true;
+    deleteForm.setAttribute("aria-busy", "true");
+    try {
+      await AtelierAPI.deleteAccount(verifiedPassword);
+      await S.finishDeletion();
+    } catch (error) {
+      $("delete-error").textContent = error.message;
+    } finally {
+      deleteButton.disabled = false;
+      deleteForm.removeAttribute("aria-busy");
+    }
   });
 
-  /* ---------------- start ---------------- */
   renderInfo();
-  renderHabits();
-  renderRequestStatus();
+  const request = supabaseClient.from("atelier_data_requests").select("created_at,status")
+    .eq("owner", S.get().id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  request.then((result) => renderRequestStatus(AtelierData.value(result))).catch(AtelierData.report);
+  if (await AtelierData.ready) {
+    returningClient ||= Store.projects().some((project) => project.status !== "draft");
+    renderHabits();
+  }
 })();

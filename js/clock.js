@@ -9,7 +9,6 @@
 window.AtelierClock = (() => {
   "use strict";
 
-  const DEMO_DATE = "2026-11-22";
   const pad = (n) => String(n).padStart(2, "0");
   const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -26,14 +25,11 @@ window.AtelierClock = (() => {
     const d = parse(value);
     return d ? isoDay(d) : null;
   };
+  const DEMO_DATE = isoDay(new Date());
   const shift = (day, n) => { const d = parse(day); d.setDate(d.getDate() + n); return isoDay(d); };
 
   // a Date on the demo day, at the real current time
-  function now() {
-    const real = new Date();
-    const [y, mo, da] = DEMO_DATE.split("-").map(Number);
-    return new Date(y, mo - 1, da, real.getHours(), real.getMinutes(), real.getSeconds());
-  }
+  const now = () => new Date();
   // local "YYYY-MM-DDTHH:MM:SS" (no time zone, so it never jumps a day)
   const nowISO = () => { const d = now(); return `${isoDay(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
   const todayISO = () => DEMO_DATE;

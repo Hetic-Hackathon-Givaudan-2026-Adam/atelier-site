@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="css/account.css" />
   <script src="js/clock.js"></script>
   <script src="js/messages-store.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2" integrity="sha384-7i/4BYWz4Mn+lJfg2HWfEPfZQ7tmFKF3CTSKlXBpxWjNlLjcg+T6smpHG4gLmU1u" crossorigin="anonymous"></script>
+  <script src="js/runtime-config.js"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/session.js"></script>
 </head>
 <body class="account-page">
@@ -36,7 +39,7 @@
       <section class="welcome rise" data-mode="client" aria-labelledby="welcome-title">
         <div>
           <span class="eyebrow">Espace client</span>
-          <h1 class="space-title" id="welcome-title">Bonjour <em data-first-name>Mira</em>.</h1>
+          <h1 class="space-title" id="welcome-title">Bonjour <em data-first-name>Client</em>.</h1>
           <p class="space-sub">Reprenez un projet ou commencez-en un nouveau.</p>
         </div>
         <a href="creer-projet" class="btn btn-primary">Créer un projet</a>
@@ -55,26 +58,24 @@
           <p class="sr-only" id="projects-status" aria-live="polite"></p>
 
           <ul class="project-list" role="list">
-            <!-- rendered by js/projets.js from Store.listProjects(): samples + saved projects merged by id -->
+            <!-- Projets Supabase -->
           </ul>
         </section>
 
         <!-- Colonne latérale : interlocutrice dédiée -->
-        <aside class="side side--contact" aria-label="Votre interlocutrice dédiée">
+        <aside class="side side--contact" aria-label="Votre équipe commerciale">
           <section class="side-card contact rise" style="--d: 0.2s" data-contact="claire" aria-labelledby="contact-title">
-            <h2 class="side-title" id="contact-title">Votre interlocutrice dédiée</h2>
+            <h2 class="side-title" id="contact-title">Votre équipe commerciale</h2>
             <div class="contact-person">
-              <span class="contact-avatar" aria-hidden="true">CM</span>
+              <span class="contact-avatar" aria-hidden="true">GA</span>
               <div>
-                <p class="contact-name">Claire Martin</p>
+                <p class="contact-name">Givaudan Atelier</p>
                 <p class="contact-role">Responsable de compte, Fragrance &amp; Beauty</p>
               </div>
             </div>
             <p class="contact-line">Votre contact pour vos projets et commandes.</p>
-            <p class="contact-availability"><span class="contact-dot" aria-hidden="true"></span>Disponible aujourd’hui · répond sous 24 h</p>
             <div class="contact-actions">
-              <a href="messages" class="btn btn-accent-outline btn-small">Contacter<span class="sr-only"> Claire Martin</span></a>
-              <button type="button" class="btn btn-outline btn-small" data-contact-open="meeting" aria-expanded="false" aria-controls="contact-panel">Prendre rendez-vous</button>
+              <a href="messages" class="btn btn-accent-outline btn-small">Contacter<span class="sr-only"> Givaudan Atelier</span></a>
             </div>
             <div class="contact-panel" id="contact-panel" hidden></div>
           </section>
@@ -86,7 +87,7 @@
         <div class="welcome welcome--new rise">
           <div>
             <span class="eyebrow">Nouveau compte</span>
-            <h1 class="space-title" id="onboarding-title">Bienvenue dans l'<em>Atelier</em>, <span data-first-name>Mira</span>.</h1>
+            <h1 class="space-title" id="onboarding-title">Bienvenue dans l'<em>Atelier</em>, <span data-first-name>Client</span>.</h1>
             <p class="space-sub">Créez votre premier projet : nous vous guidons pas à pas.</p>
             <a href="creer-projet" class="btn btn-primary btn-large">Créer mon premier projet</a>
           </div>
@@ -118,41 +119,11 @@
         </section>
       </section>
 
-      <!-- ================= Mode démo ================= -->
-      <div class="demo" role="group" aria-labelledby="demo-label">
-        <span class="demo-label" id="demo-label">Mode démo :</span>
-        <div class="demo-switch">
-          <button type="button" data-demo="client" aria-pressed="true">Client existant</button>
-          <button type="button" data-demo="new" aria-pressed="false">Nouveau client</button>
-        </div>
-        <span class="demo-sep" aria-hidden="true"></span>
-        <button type="button" class="demo-reset" id="demo-reset" aria-haspopup="dialog">Réinitialiser la démo</button>
-        <span class="demo-sep" aria-hidden="true"></span>
-        <button type="button" class="api-pill" data-api-pill>Mode simulation</button>
-        <span class="demo-sep" aria-hidden="true"></span>
-        <a href="espace-commercial" class="demo-reset demo-givaudan">Voir la démo côté Givaudan →</a>
+      <div class="demo">
+        <button type="button" class="api-pill" data-api-pill>Vérification…</button>
       </div>
     </div>
   </main>
-
-  <!-- Confirmation: réinitialiser la démo (same style as the sign-in modal) -->
-  <div class="modal modal--small" id="reset-modal" hidden>
-    <div class="modal-backdrop" data-reset-close></div>
-    <div class="modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-text" tabindex="-1">
-      <button class="modal-close" type="button" aria-label="Fermer" data-reset-close>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-      </button>
-      <span class="eyebrow">Mode démo</span>
-      <h2 id="reset-title" class="modal-title">Réinitialiser la <em>démo</em> ?</h2>
-      <p id="reset-text" class="modal-text">Les projets et commandes créés pendant les tests seront effacés.</p>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-primary" id="reset-confirm">Réinitialiser</button>
-        <button type="button" class="btn btn-outline" data-reset-close>Annuler</button>
-      </div>
-    </div>
-  </div>
-
-  <p class="toast" id="toast" role="status" aria-live="polite"></p>
 
   <footer class="site-footer">
     <p><span class="footer-brand">Givaudan Atelier</span> — Prototype hackathon HETIC × Givaudan 2026</p>
@@ -160,6 +131,7 @@
 
   <script src="js/ui.js"></script>
   <script src="js/samples.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/store.js"></script>
   <script src="js/orders.js"></script>
   <script src="js/config.js"></script>

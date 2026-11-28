@@ -3,12 +3,17 @@
    Works for the sample projects (js/samples.js) and for the projects
    saved by "Créer un projet". The internal "potentiel" is never shown.
    ========================================================= */
-(() => {
+(async () => {
   "use strict";
 
   const S = window.AtelierSession;
-  const session = S && S.get();
-  if (!session) return; // session.js already redirected to the login page
+  if (!S) return;
+  await S.ready;
+
+  const session = S.get();
+
+  if (!session || session.role !== "client") return;
+  if (!(await AtelierData.ready)) return;
 
   const doc = document.getElementById("doc");
   doc.removeAttribute("aria-live"); // only needed for the "introuvable" case below

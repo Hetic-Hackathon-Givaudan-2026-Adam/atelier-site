@@ -1,11 +1,18 @@
-/* =========================================================
-   Givaudan Atelier — Espace commercial · Messages (Claire Martin's inbox)
-   Conversations from js/sales-data.js (demo client: js/messages-store.js,
-   shared with the client's /messages; fictional clients: sales inbox).
-   Each conversation opens with a "Rappel du projet" card.
-   ========================================================= */
-(() => {
+/* Messagerie de projet pour le commercial affecté. */
+(async () => {
   "use strict";
+
+  const session = await AtelierSession.ready;
+  if (!session || !(await AtelierData.ready)) return;
+  if (session.role === "admin" && location.pathname.includes("commercial-messages")) {
+    location.replace("espace-commercial");
+    return;
+  }
+  document.querySelector(".sales-who").textContent = `${session.firstName} ${session.lastName}`;
+  document.querySelector(".sales-avatar").textContent = AtelierSession.initials(session);
+  const dayName = document.querySelector("#day-title em");
+  if (dayName) dayName.textContent = session.firstName;
+
 
   const S = window.AtelierSales;
   const Orders = window.AtelierOrders;
@@ -218,9 +225,10 @@
     opener = from;
     if (c.unread && markRead) {
       // opening it reads it (Claire's side only)
-      S.markConversationRead(id);
-      load();
-      c = convs.find((x) => x.id === id);
+      S.markConversationRead(id).then(() => {
+        load();
+        renderInbox();
+      }).catch(AtelierData.report);
     }
     renderConversation(c);
     renderInbox();
@@ -272,14 +280,23 @@
     area.setSelectionRange(area.value.length, area.value.length);
   }));
 
-  form.addEventListener("submit", (e) => {
+  let sending = false;
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = area.value.trim();
     const c = convs.find((x) => x.id === currentId);
-    if (!text || !c) return;
-    S.sendFromSales(c, text);
-    area.value = "";
+    if (!text || !c || sending) return;
+    sending = true;
     send.disabled = true;
+    try {
+      await S.sendFromSales(c, text);
+    } catch (error) {
+      AtelierData.report(error);
+      send.disabled = false;
+      return;
+    } finally { sending = false; }
+    if (area.value.trim() === text) area.value = "";
+    send.disabled = !area.value.trim();
     load();
     const fresh = convs.find((x) => x.id === currentId);
     renderConversation(fresh);

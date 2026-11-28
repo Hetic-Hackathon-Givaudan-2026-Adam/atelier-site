@@ -1,8 +1,4 @@
-/* =========================================================
-   Givaudan Atelier — simulated login state (front-end prototype)
-   Stored in localStorage only. Loaded in <head> on every page so that
-   protected pages (<html data-protected>) redirect before rendering.
-   ========================================================= */
+/* Gestion de la session Supabase et des accès par page. */
 (() => {
   "use strict";
 
@@ -11,7 +7,7 @@
   const REORDER_KEY = "atelierOpenReorder"; // "1" → open the reorder modal on Mes commandes
   const DELETED_KEY = "atelierAccountDeleted"; // "1" → "Votre compte a été supprimé." on the next page
   // only these pages are accepted as a post-login destination (no open redirect)
-  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "profil"];
+  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "brief", "profil", "espace-commercial", "commercial-messages"];
   const DEFAULT_NEXT = "mes-projets";
 
   // "creer-projet", "/creer-projet", "creer-projet.html" → "creer-projet"; anything else → null
@@ -21,49 +17,96 @@
     return NEXT_PAGES.includes(v) ? v : null;
   };
 
-  const read = () => {
+  let currentSession = null;
+  let loggingOut = false;
+
+  const read = () => currentSession;
+
+  async function loadSession() {
     try {
-      const s = JSON.parse(localStorage.getItem(KEY));
-      return s && typeof s.firstName === "string" ? s : null;
-    } catch (_) {
-      return null;
+      if (!supabaseClient) return (currentSession = null);
+      const { data, error } = await supabaseClient.auth.getUser();
+
+      if (error || !data.user) return (currentSession = null);
+
+      const user = data.user;
+
+      const { data: profile, error: profileError } =
+        await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+      if (profileError) throw profileError;
+
+      const metadata = user.user_metadata || {};
+      const names = (profile.full_name || "").trim().split(/\s+/);
+
+      currentSession = {
+        id: user.id,
+        email: user.email,
+        pendingEmail: user.new_email || "",
+        firstName: profile.first_name ?? (metadata.first_name || names[0] || "Client"),
+        lastName: profile.last_name ?? (metadata.last_name || names.slice(1).join(" ") || "Atelier"),
+        company: profile.company ?? (metadata.company || ""),
+        role: profile.role,
+        existingClient: metadata.existing_client_claim === true,
+        since: Date.now()
+      };
+
+      return currentSession;
+
+    } catch (error) {
+      console.error("Erreur session Supabase :", error.message);
+      return (currentSession = null);
     }
-  };
-  const write = (s) => {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (_) { /* storage blocked */ }
-  };
+  }
 
   const api = {
     get: read,
-    isLoggedIn: () => Boolean(read()),
-    login({ firstName, lastName, company, email, existingClient } = {}) {
-      const s = {
-        firstName: (firstName || "").trim() || "Mira",
-        lastName: (lastName || "").trim() || "Koné",
-        company: (company || "").trim() || "Maison Koné",
-        email: (email || "").trim(), // optional ("" → "Non renseigné" in Mon profil)
-        existingClient: Boolean(existingClient),
-        since: Date.now(),
-      };
-      write(s);
-      return s;
+
+    isLoggedIn: () => Boolean(currentSession),
+
+    login: loadSession,
+
+    async saveProfile({ firstName, lastName, company }) {
+      const id = read().id;
+      const { data, error } = await supabaseClient.from("profiles").update({
+        first_name: firstName, last_name: lastName, company,
+        full_name: `${firstName} ${lastName}`,
+      }).eq("id", id).select("id").single();
+      if (error) throw error;
+      if (read()?.id !== data.id) return;
+      Object.assign(read(), { firstName, lastName, company });
+      paintAccount(read());
     },
-    // update some fields (Mon profil), then repaint the account menu of this page
-    update(patch) {
-      const s = read();
-      if (!s) return null;
-      Object.assign(s, patch);
-      write(s);
-      paintAccount(s);
-      return s;
-    },
-    // Mon profil → "Supprimer mon compte": message shown once on the next page
+
     flagDeleted() {
       try { sessionStorage.setItem(DELETED_KEY, "1"); } catch (_) { /* storage blocked */ }
     },
-    logout() {
-      try { localStorage.removeItem(KEY); } catch (_) { /* ignore */ }
+
+    async finishDeletion() {
+      currentSession = null;
+      api.rememberNext(null);
+      api.rememberIntent(null);
+      api.flagDeleted();
+      try { await supabaseClient.auth.signOut({ scope: "local" }); }
+      finally { location.replace("./"); }
     },
+
+    async logout() {
+      loggingOut = true;
+      try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+        currentSession = null;
+        try { localStorage.removeItem(KEY); } catch (_) { /* storage blocked */ }
+      } finally {
+        loggingOut = false;
+      }
+    },
+
     safeNext(value) {
       return normalizeNext(value) || DEFAULT_NEXT;
     },
@@ -109,16 +152,51 @@
   };
   window.AtelierSession = api;
 
-  /* ---------------- Guard for customer-space pages ---------------- */
-  if (document.documentElement.hasAttribute("data-protected") && !read()) {
-    const page = api.safeNext(location.pathname.split("/").pop());
-    api.rememberNext(page);
-    location.replace(`connexion?next=${encodeURIComponent(page)}`);
-    return;
+  const pageRole = document.documentElement.getAttribute("data-protected");
+  const protectedPage = pageRole !== null;
+  const allowed = (session) => session && (pageRole === "commercial"
+    ? ["commercial", "admin"].includes(session.role) : session.role === "client");
+  api.destination = (session, next) => session.role === "client"
+    ? (["espace-commercial", "commercial-messages"].includes(next) ? DEFAULT_NEXT : next)
+    : session.role === "commercial" && next === "commercial-messages" ? next : "espace-commercial";
+
+  if (protectedPage) {
+    document.documentElement.style.visibility = "hidden";
   }
 
+  api.ready = loadSession().then((session) => {
+    if (protectedPage && session && !allowed(session)) {
+      location.replace(api.destination(session, DEFAULT_NEXT));
+      return null;
+    }
+    if (protectedPage && !session) {
+      const page = api.safeNext(location.pathname.split("/").pop());
+      api.rememberNext(page);
+      location.replace(`connexion?next=${encodeURIComponent(page)}`);
+      return null;
+    }
+
+    document.documentElement.style.visibility = "";
+    return session;
+  });
+
+  supabaseClient?.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") {
+      const wasSignedIn = Boolean(currentSession);
+      currentSession = null;
+      if (protectedPage && wasSignedIn && !loggingOut) {
+        document.documentElement.style.visibility = "hidden";
+        setTimeout(() => location.replace("connexion"), 0);
+      }
+    }
+  });
+
+  window.addEventListener("pageshow", (event) => {
+    if (protectedPage && event.persisted) location.reload();
+  });
+
   /* ---------------- Header ---------------- */
-  // initials, name and status of the account menu (again after AtelierSession.update)
+  // Refresh the account menu after a profile edit.
   function paintAccount(s) {
     const account = document.querySelector(".site-header .account");
     if (!account || !s) return;
@@ -126,7 +204,7 @@
     account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
     account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
     account.querySelector(".account-name").textContent = name;
-    account.querySelector(".account-status").textContent = s.existingClient ? "Client Givaudan" : "Nouveau client";
+    account.querySelector(".account-status").textContent = { client: s.existingClient ? "Client Givaudan" : "Nouveau client", commercial: "Commercial", admin: "Administrateur" }[s.role];
   }
 
   // after "Supprimer mon compte": a short message on the home page (self-styled,
@@ -160,7 +238,7 @@
     document.querySelectorAll("[data-auth-next]").forEach((el) => {
       const next = el.dataset.authNext;
       const hash = el.dataset.authHash ? `#${el.dataset.authHash}` : ""; // e.g. commandes#recommander
-      if (s) el.setAttribute("href", next + hash);
+      if (s) el.setAttribute("href", api.destination(s, next) + hash);
       else if (!hasModal) el.setAttribute("href", `connexion?next=${encodeURIComponent(next)}#connexion`);
       // logged out, no modal on this page: keep the destination (and intent) for after login
       if (!s && !hasModal) {
@@ -212,7 +290,8 @@
         <a href="profil" class="account-item">Mon profil</a>
         <button type="button" class="account-item" data-logout>Se déconnecter</button>
       </div>`;
-    if (/\/profil(\.html)?$/.test(location.pathname)) account.querySelector('a[href="profil"]').setAttribute("aria-current", "page");
+    if (s.role !== "client") account.querySelector('a[href="profil"]').remove();
+    if (s.role === "client" && /\/profil(\.html)?$/.test(location.pathname)) account.querySelector('a[href="profil"]').setAttribute("aria-current", "page");
     signIn.replaceWith(account);
     paintAccount(s);
     document.documentElement.classList.add("is-logged-in");
@@ -247,14 +326,39 @@
     account.addEventListener("focusout", (e) => {
       if (isOpen() && !account.contains(e.relatedTarget)) close();
     });
-    account.querySelector("[data-logout]").addEventListener("click", () => {
-      api.logout();
+    account.querySelector("[data-logout]").addEventListener("click", async () => {
+      try {
+        await api.logout();
+      } catch (error) {
+        console.error("Erreur de deconnexion :", error);
+        alert("Impossible de se deconnecter : " + error.message);
+        return;
+      }
       api.rememberNext(null);
       api.rememberIntent(null);
-      location.href = "./";
+      location.replace("connexion");
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderHeader);
-  else renderHeader();
+  async function initHeader() {
+    await api.ready;
+
+    if (protectedPage && !allowed(read())) {
+      return;
+    }
+
+    document.querySelectorAll("[data-staff-logout]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try { await api.logout(); location.replace("connexion"); }
+        catch (error) { alert(error.message); }
+      });
+    });
+    renderHeader();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initHeader);
+  } else {
+    initHeader();
+  }
 })();

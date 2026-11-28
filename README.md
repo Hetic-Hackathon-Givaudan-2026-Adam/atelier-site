@@ -52,3 +52,9 @@ Pour tester avec une autre adresse : `localStorage.setItem("atelierApiUrl", "htt
 ## Équipe
 
 À compléter
+
+## Déployer Mon profil
+
+Appliquer les scripts Supabase manquants dans l’ordre, jusqu’à `supabase/08_profile_integration.sql`.
+Configurer la redirection `/profil` dans Supabase Auth pour les confirmations de changement d’adresse.
+Le backend doit disposer de `SUPABASE_SERVICE_ROLE_KEY` dans son environnement pour activer la suppression de compte.

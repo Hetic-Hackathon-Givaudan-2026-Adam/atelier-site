@@ -1,25 +1,7 @@
-/* =========================================================
-   Givaudan Atelier — orders (shared by Mes commandes, Mes projets,
-   Créer un projet)
-
-   Sample orders (below) + orders saved in localStorage
-   ("givaudanAtelier.orders"), merged BY ID: the saved version wins.
-   Every order goes through normalize(), so older or partial records
-   (e.g. created by a previous version of the prototype) never crash the
-   page nor print "undefined".
-
-   Order shape:
-   { id, number, type: "echantillon" | "reassort", reference, category,
-     quantity, orderedAt, expectedAt, deliveredAt,
-     status: "confirmee" | "preparation" | "expediee" | "livree",
-     history: [{ date, label }], address: { company, line, city, country },
-     projectId, projectName, carrier: { name, trackingNumber, events[] },
-     comment }
-   ========================================================= */
+/* Commandes persistées par utilisateur dans Supabase. */
 window.AtelierOrders = (() => {
   "use strict";
 
-  const KEY = "givaudanAtelier.orders";
 
   // The demo story is told on 22 November 2026 ("livré demain", timelines,
   // reorder dates). Pinned so the prototype stays coherent on any day.
@@ -188,22 +170,13 @@ window.AtelierOrders = (() => {
   }
 
   /* ---------------- storage ---------------- */
-  const load = () => {
-    try {
-      const v = JSON.parse(localStorage.getItem(KEY));
-      return Array.isArray(v) ? v : [];
-    } catch (_) {
-      return [];
-    }
-  };
-  const save = (list) => {
-    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (_) { /* storage blocked */ }
-  };
+  const load = () => window.AtelierData?.preference("orders") || [];
+  const save = (list) => AtelierData.savePreference("orders", list);
 
   /* all orders, newest order date first. includeSamples: false for a new client */
   function list({ includeSamples = true } = {}) {
     const byId = new Map();
-    if (includeSamples) samples().forEach((o) => byId.set(o.id, { ...o, sample: true }));
+
     load().forEach((o) => {
       const n = normalize(o);
       byId.set(n.id, { ...n, sample: false });

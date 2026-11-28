@@ -3,12 +3,17 @@
    One conversation with the dedicated sales rep (js/messages-store.js),
    shared with the Espace commercial. Protected page (session.js guard).
    ========================================================= */
-(() => {
+(async () => {
   "use strict";
 
   const S = window.AtelierSession;
-  const session = S && S.get();
-  if (!session) return; // session.js already redirected to the login page
+  if (!S) return;
+  await S.ready;
+
+  const session = S.get();
+
+  if (!session || session.role !== "client") return;
+  if (!(await AtelierData.ready)) return;
 
   const M = window.AtelierMessages;
   const Orders = window.AtelierOrders;
@@ -16,7 +21,7 @@
   const existing = Boolean(session.existingClient);
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (id) => document.getElementById(id);
-  const SALES_NAME = existing ? "Claire Martin" : "Notre équipe Givaudan Atelier";
+  const SALES_NAME = "L’équipe Givaudan Atelier";
 
   function h(tag, props = {}, ...kids) {
     const el = document.createElement(tag);
@@ -199,7 +204,7 @@
 
   function fillAbout() {
     select.textContent = "";
-    select.append(h("option", { value: "" }, "Aucun projet en particulier"));
+    select.append(h("option", { value: "" }, "Sélectionner un projet"));
     const projects = existing ? Store.listProjects() : Store.projects();
     if (projects.length) {
       select.append(h("optgroup", { label: "Projets" }, projects.map((p) => h("option", { value: `project:${p.id}` }, p.name))));
@@ -231,54 +236,51 @@
     }
   });
 
-  let typingTimer = 0;
-  form.addEventListener("submit", (e) => {
+  let sending = false;
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const value = text.value.trim();
-    if (!value) return;
-    const sentAbout = aboutValue();
-    M.add({ from: "client", text: value, about: sentAbout });
-    text.value = "";
+    const content = text.value.trim();
+    if (!content || sending) return;
+    const subject = aboutValue();
+    const projectId = subject?.type === "order" ? Orders.find(subject.id)?.projectId : subject?.id;
+    const live = $("conv-live");
+    if (!projectId) {
+      live.textContent = "Sélectionnez un projet pour envoyer votre message.";
+      select.focus();
+      return;
+    }
+    sending = true;
     send.disabled = true;
-    renderFilter(); // a new project may now have messages
-    render();
-    scrollToEnd(true);
-    $("conv-live").textContent = "Message envoyé.";
-    // demo: an automatic reply, at most once every 2 minutes
-    if (!M.canAutoReply()) return;
-    M.markAutoReply();
-    const typing = h("li", { class: "cmsg cmsg--sales cmsg--typing" },
-      h("span", { class: "cmsg-avatar", "aria-hidden": "true" }, existing ? "CM" : "GA"),
-      h("div", { class: "cmsg-bubble" }, h("p", { class: "cmsg-text" }, existing ? "Claire écrit…" : "L'équipe écrit…"),
-        h("span", { class: "dots", "aria-hidden": "true" }, h("i"), h("i"), h("i"))));
-    conv.append(typing);
-    scrollToEnd(true);
-    $("conv-live").textContent = existing ? "Claire écrit…" : "L'équipe écrit…";
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      const reply = existing
-        ? "Merci pour votre message, je reviens vers vous rapidement. — Claire"
-        : "Merci pour votre message, nous revenons vers vous rapidement. — L'équipe Givaudan Atelier";
-      // same subject as the client's message, so it stays visible in a project view
-      M.add({ from: "sales", text: reply, read: true, auto: true, about: sentAbout });
+    try {
+      await AtelierData.send(projectId, content);
+      if (text.value.trim() === content) text.value = "";
+      renderFilter();
       render();
       scrollToEnd(true);
-      $("conv-live").textContent = `${SALES_NAME} : ${reply}`;
-      if (S.renderMessagesBadge) S.renderMessagesBadge();
-    }, reduced ? 600 : 1500);
+      live.textContent = "Message envoyé.";
+    } catch (error) {
+      live.textContent = "Impossible d’envoyer votre message.";
+      AtelierData.report(error);
+    } finally {
+      sending = false;
+      send.disabled = !text.value.trim();
+    }
   });
 
   /* ---------------- start ---------------- */
   fillAbout();
   // messages?projet=<id> (e.g. "Ouvrir la conversation" in Créer un projet) → that project's conversation
   const linkedProject = new URLSearchParams(location.search).get("projet");
-  if (linkedProject && Store.find(linkedProject)) setFilter(linkedProject, false);
+  if (linkedProject && Store.find(linkedProject)) {
+    select.value = `project:${linkedProject}`;
+    setFilter(linkedProject, false);
+  }
   else {
     renderFilter();
     render();
   }
   // opening the page reads everything: the header badge disappears
-  M.markAllRead();
+  await M.markAllRead().catch(AtelierData.report);
   const refreshBadge = () => { if (S.renderMessagesBadge) S.renderMessagesBadge(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refreshBadge);
   else refreshBadge();

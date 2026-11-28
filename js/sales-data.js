@@ -1,10 +1,4 @@
-/* =========================================================
-   Givaudan Atelier — sales data (Givaudan side, demo view)
-   Shared by the Espace commercial (js/commercial.js) and its Messages page
-   (js/commercial-messages.js): leads = the demo client's projects +
-   5 fictional clients, with potential, stage, history and the next best
-   action. Sales actions: localStorage "givaudanAtelier.salesActions".
-   ========================================================= */
+/* Modèle partagé des projets et de la messagerie commerciale. */
 window.AtelierSales = (() => {
   "use strict";
 
@@ -29,109 +23,20 @@ window.AtelierSales = (() => {
   const blendsOf = (ids) => ids.map((id) => catalog.get(id)).filter(Boolean);
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-  /* ---------------- sales actions (localStorage) ---------------- */
   function loadActions() {
-    try {
-      const v = JSON.parse(localStorage.getItem(ACTIONS_KEY));
-      return Array.isArray(v) ? v : [];
-    } catch (_) {
-      return [];
-    }
+    return AtelierData.preference("salesActions");
   }
+
   function addAction(leadId, type, text = "") {
     const list = loadActions();
-    list.push({ leadId, type, date: TODAY, text, at: Date.now() });
-    try { localStorage.setItem(ACTIONS_KEY, JSON.stringify(list)); } catch (_) { /* storage blocked */ }
+    list.push({ leadId, type, text, date: new Date().toISOString().slice(0, 10), at: Date.now() });
+    return AtelierData.savePreference("salesActions", list);
   }
 
-  /* ---------------- 5 fictional clients (same shape as the demo projects) ---------------- */
-  function fictionalLeads() {
-    const addr = (company, line, city, country = "France") => ({ company, line, city, country });
-    return [
-      {
-        id: "lead-solaria", client: "Solaria Cosmetics", contact: "Léa", contactFull: "Léa Bernard",
-        project: {
-          id: "solaria-ete-indien", name: "Brume corporelle Été Indien", product: "Brume corporelle", status: "proposed",
-          created: ago(1), date: ago(1), potential: "élevé",
-          source: { type: "import", fileName: "Solaria_Brief_EteIndien.pdf" },
-          brief: { target: "Femmes 25-40 ans", ambiance: ["Évasion", "Douceur"], notes: ["Fruits exotiques", "Fleur de tiaré", "Vanille"], constraints: ["Vegan"], intensity: "Modérée", market: "Monde", volume: "Plus de 10 t", launch: "Moins de 6 mois" },
-          blends: blendsOf(["coco-vanille", "ambre-dore", "route-des-epices"]), favorite: null, blend: null,
-        },
-        orders: [], rejected: [],
-      },
-      {
-        id: "lead-verdane", client: "Maison Verdane", contact: "Paul", contactFull: "Paul Morel",
-        project: {
-          id: "verdane-foret", name: "Savon solide Forêt", product: "Savon", status: "requested",
-          created: ago(21), date: ago(14), potential: "moyen", source: { type: "chat" },
-          brief: { target: "Hommes", ambiance: ["Boisé"], notes: ["Bois de cèdre", "Vétiver", "Santal"], constraints: ["Naturel", "Biodégradable"], intensity: "Intense", market: "France", volume: "1 à 10 t", launch: "6 à 12 mois" },
-          blends: blendsOf(["cedre-atlas", "santal-cremeux", "vetiver-fume"]), favorite: null, blend: { id: "cedre-atlas", name: "Cèdre de l'Atlas" },
-        },
-        orders: [{
-          id: "verdane-o1", number: "GA-2026-0124", type: "echantillon", reference: "Cèdre de l'Atlas", category: "Savon", quantity: "50 ml",
-          orderedAt: ago(14), expectedAt: ago(9), deliveredAt: ago(9), status: "livree",
-          address: addr("Maison Verdane", "4 rue des Tanneurs", "69002 Lyon"),
-        }],
-        rejected: [],
-      },
-      {
-        id: "lead-cleanhome", client: "CleanHome Group", contact: "Karim", contactFull: "Karim Haddad",
-        project: {
-          id: "cleanhome-alpine", name: "Lessive Fraîcheur Alpine", product: "Lessive", status: "requested",
-          created: ago(25), date: ago(3), potential: "élevé", source: { type: "chat" },
-          brief: { target: "Familles", ambiance: ["Fraîcheur"], notes: ["Notes vertes", "Agrumes"], constraints: ["Biodégradable"], intensity: "Modérée", market: "Europe", volume: "Plus de 10 t", launch: "6 à 12 mois" },
-          blends: blendsOf(["brise-de-calabre", "menthe-givree", "ecume-marine"]), favorite: null, blend: { id: "brise-de-calabre", name: "Brise de Calabre" },
-        },
-        orders: [{
-          id: "cleanhome-o1", number: "GA-2026-0121", type: "echantillon", reference: "Brise de Calabre", category: "Lessive", quantity: "100 ml",
-          orderedAt: ago(11), expectedAt: ago(6), deliveredAt: ago(6), status: "livree",
-          address: addr("CleanHome Group", "Kungsgatan 12", "111 43 Stockholm", "Suède"),
-          feedback: { verdict: "fits", date: ago(3), next: "quote", quote: { volume: "Plus de 10 t", comment: "Lancement prévu au printemps." } },
-        }],
-        rejected: [],
-      },
-      {
-        id: "lead-nordique", client: "Nordique Spa", contact: "Ingrid", contactFull: "Ingrid Larsen",
-        project: {
-          id: "nordique-hygge", name: "Bougie Hygge", product: "Bougie", status: "requested",
-          created: ago(30), date: ago(8), potential: "faible", source: { type: "chat" },
-          brief: { target: "Intérieur cosy", ambiance: ["Douceur"], notes: ["Vanille", "Muscs blancs", "Fleur de coton"], constraints: ["Naturel"], intensity: "Subtile", market: "France", volume: "Moins d'1 t", launch: "Plus de 12 mois" },
-          blends: blendsOf(["caramel-beurre-sale", "coco-vanille", "ambre-dore"]), favorite: null, blend: { id: "caramel-beurre-sale", name: "Caramel Beurre Salé" },
-        },
-        orders: [{
-          id: "nordique-o1", number: "GA-2026-0116", type: "echantillon", reference: "Caramel Beurre Salé", category: "Bougie", quantity: "50 ml",
-          orderedAt: ago(17), expectedAt: ago(12), deliveredAt: ago(12), status: "livree",
-          address: addr("Nordique Spa", "18 quai des Chartrons", "33000 Bordeaux"),
-          feedback: { verdict: "no", date: ago(8), reason: ["Trop fort"], note: "", next: null },
-        }],
-        rejected: ["Caramel Beurre Salé"],
-      },
-      {
-        id: "lead-lumen", client: "Atelier Lumen", contact: "Camille", contactFull: "Camille Roy",
-        project: {
-          id: "lumen-neroli", name: "Diffuseur Néroli", product: "Parfum d'ambiance", status: "expert",
-          created: ago(4), date: ago(2), potential: "moyen",
-          source: { type: "import", fileName: "Lumen_brief_diffuseur.docx" },
-          brief: { target: "Hôtellerie", ambiance: ["Floral", "Fraîcheur"], notes: ["Néroli", "Fleur d'oranger", "Notes vertes"], constraints: [], intensity: "Subtile", market: "Europe", volume: "1 à 10 t", launch: "Plus de 12 mois" },
-          blends: blendsOf(["nuit-de-jasmin", "jardin-de-grasse", "petales-poudres"]), favorite: null, blend: null,
-        },
-        orders: [], rejected: [],
-      },
-    ];
-  }
-
-  /* ---------------- the demo client (Mira Koné, Maison Koné) ---------------- */
-  function demoLeads() {
-    let s = null;
-    try { s = JSON.parse(localStorage.getItem("givaudanAtelier.session")); } catch (_) { /* ignore */ }
-    const first = (s && s.firstName) || "Mira";
-    const last = (s && s.lastName) || "Koné";
-    const client = (s && s.company) || "Maison Koné";
-    const orders = Orders.list({ includeSamples: true });
-    const rejected = Store.rejectedBlends();
-    return Store.listProjects().map((p) => ({
-      id: `client-${p.id}`, client, contact: first, contactFull: `${first} ${last}`, demo: true,
-      project: p, orders: orders.filter((o) => o.projectId === p.id), rejected,
+  function assignedLeads() {
+    return Store.listProjects().map((project) => ({
+      id: project.id, project, client: project.clientName || "Client",
+      contact: project.clientName || "Client", contactFull: project.clientName || "Client",
     }));
   }
 
@@ -211,7 +116,7 @@ window.AtelierSales = (() => {
       blends: p.blends || [],
     };
     // demo client: the conversation of /messages about this project (js/messages-store.js)
-    if (raw.demo && window.AtelierMessages) {
+    if (window.AtelierMessages) {
       const ids = orders.map((o) => o.id);
       lead.conversation = window.AtelierMessages.about(p.id, ids);
       lead.waiting = window.AtelierMessages.waitingForSales(p.id, ids);
@@ -281,7 +186,7 @@ window.AtelierSales = (() => {
 
   function allLeads() {
     const actions = loadActions();
-    const leads = [...demoLeads(), ...fictionalLeads()].map((raw) => buildLead(raw, actions));
+    const leads = assignedLeads().map((raw) => buildLead(raw, actions));
     // urgent first, then potential, then most recent activity; treated at the bottom
     return leads.sort((a, b) =>
       (a.nba.level === "done") - (b.nba.level === "done")
@@ -290,128 +195,23 @@ window.AtelierSales = (() => {
       || b.lastActivity.localeCompare(a.lastActivity));
   }
 
-  /* ================= sales inbox (Claire's side of the conversations) =================
-     One conversation per client + project:
-     - demo client (Maison Koné): js/messages-store.js grouped by `about`
-       (project, or the project of an order); no `about` → "Général";
-     - fictional clients: seeds + messages sent here, in "givaudanAtelier.salesInbox"
-       (never shown on the client side), + Claire's relances from the drawer.
-     Read state (Claire's side) per conversation: inbox.readAt[convId]. */
-  const INBOX_KEY = "givaudanAtelier.salesInbox";
-  const pad = (n) => String(n).padStart(2, "0");
-  const now = () => window.AtelierClock.nowISO();
-  const at = (daysAgo, time) => `${Orders.addDays(TODAY, -daysAgo)}T${time}:00`;
-  function loadInbox() {
-    try {
-      const v = JSON.parse(localStorage.getItem(INBOX_KEY));
-      return v && Array.isArray(v.added) ? { readAt: {}, ...v } : { added: [], readAt: {} };
-    } catch (_) {
-      return { added: [], readAt: {} };
-    }
-  }
-  const saveInbox = (v) => { try { localStorage.setItem(INBOX_KEY, JSON.stringify(v)); } catch (_) { /* storage blocked */ } };
-
-  // seen: already read by Claire in the demo story
-  function inboxSeeds() {
-    return {
-      "lead-cleanhome": [
-        { id: "ch-1", from: "client", seen: true, date: at(3, "10:05"), text: "Bonjour Claire, nous avons testé Brise de Calabre : il convient parfaitement à notre lessive." },
-        { id: "ch-2", from: "sales", date: at(3, "11:20"), text: "Merci Karim, ravie de l'apprendre ! Je prépare la suite avec nos équipes." },
-        { id: "ch-3", from: "client", date: at(1, "09:40"), text: "Bonjour Claire, pouvez-vous nous envoyer le devis pour Lessive Fraîcheur Alpine avant vendredi ?" },
-      ],
-      "lead-solaria": [
-        { id: "so-1", from: "client", date: at(1, "16:10"), text: "Bonjour Claire, nous venons de vous transmettre notre brief pour la brume Été Indien, avez-vous des questions ?" },
-      ],
-      "lead-verdane": [
-        { id: "ve-1", from: "client", seen: true, date: at(21, "14:30"), text: "Bonjour Claire, nous lançons un savon solide pour hommes, plutôt boisé. Pouvez-vous nous accompagner ?" },
-        { id: "ve-2", from: "sales", date: at(14, "09:15"), text: "Bonjour Paul, votre échantillon Cèdre de l'Atlas part aujourd'hui. Je reste à votre écoute." },
-      ],
-      "lead-nordique": [
-        { id: "no-1", from: "sales", date: at(12, "10:00"), text: "Bonjour Ingrid, votre échantillon Caramel Beurre Salé vient d'être livré. Bonne découverte !" },
-        { id: "no-2", from: "client", seen: true, date: at(8, "15:45"), text: "Bonjour Claire, nous avons testé Caramel Beurre Salé : ce n'est pas la bonne direction, trop gourmand pour notre spa." },
-      ],
-      "lead-lumen": [
-        { id: "lu-1", from: "client", seen: true, date: at(2, "11:30"), text: "Bonjour Claire, merci d'avoir transmis notre brief à votre expert. Quand pouvons-nous planifier l'appel ?" },
-      ],
-    };
+  function conversations(leads = allLeads()) {
+    return leads.map((lead) => {
+      const messages = window.AtelierMessages.about(lead.project.id);
+      const last = messages.at(-1);
+      const unreadCount = messages.filter((m) => m.from === "client" && !m.seen).length;
+      return {
+        id: lead.id, lead, messages, client: lead.client, contact: lead.contact,
+        contactFull: lead.contactFull, projectName: lead.project.name,
+        unread: unreadCount > 0, unreadCount, toAnswer: last?.from === "client",
+        last: last || { date: lead.project.date, text: "", from: "sales" },
+      };
+    }).sort((a, b) => b.unreadCount - a.unreadCount || b.last.date.localeCompare(a.last.date));
   }
 
-  function makeConv(id, lead, messages, info, readAt) {
-    messages.sort((a, b) => a.date.localeCompare(b.date));
-    const read = readAt[id] || "";
-    const unread = messages.filter((m) => m.from === "client" && !m.seen && m.date > read);
-    // automatic demo replies do not count as Claire having answered
-    const lastReal = [...messages].reverse().find((m) => m.from !== "system" && !m.auto);
-    return {
-      id, lead, messages, ...info,
-      projectName: lead ? lead.project.name : "Général",
-      unread: unread.length > 0,
-      unreadCount: unread.length,
-      toAnswer: Boolean(lastReal && lastReal.from === "client"),
-      last: messages[messages.length - 1],
-    };
-  }
-
-  function conversations(leadsIn) {
-    const leads = leadsIn || allLeads();
-    const byId = new Map(leads.map((l) => [l.id, l]));
-    const inbox = loadInbox();
-    const convs = [];
-    const M = window.AtelierMessages;
-    if (M) {
-      const groups = new Map();
-      M.list().forEach((m) => {
-        let pid = null;
-        if (m.about) {
-          if (m.about.type === "project") pid = m.about.id;
-          else { const o = Orders.find(m.about.id); pid = (o && o.projectId) || m.about.orderId || null; }
-        }
-        const key = pid && byId.has(`client-${pid}`) ? `client-${pid}` : "client-general";
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push({ ...m });
-      });
-      let first = "Mira";
-      let last = "Koné";
-      let company = "Maison Koné";
-      try {
-        const s = JSON.parse(localStorage.getItem("givaudanAtelier.session")) || {};
-        first = s.firstName || first; last = s.lastName || last; company = s.company || company;
-      } catch (_) { /* ignore */ }
-      groups.forEach((msgs, id) => {
-        convs.push(makeConv(id, byId.get(id) || null, msgs, { client: company, contact: first, contactFull: `${first} ${last}`, demo: true }, inbox.readAt));
-      });
-    }
-    const seeds = inboxSeeds();
-    leads.filter((l) => !l.demo).forEach((l) => {
-      const relances = l.actions.filter((a) => a.type === "relance").map((a) => {
-        const d = new Date(a.at || Date.now());
-        return { id: `act-${a.at}`, from: "sales", text: a.text, date: `${a.date}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` };
-      });
-      const msgs = [...(seeds[l.id] || []).map((m) => ({ ...m })), ...inbox.added.filter((m) => m.conv === l.id).map((m) => ({ ...m })), ...relances];
-      if (msgs.length) convs.push(makeConv(l.id, l, msgs, { client: l.client, contact: l.contact, contactFull: l.contactFull, demo: false }, inbox.readAt));
-    });
-    // unread first, then the most recent
-    return convs.sort((a, b) => (b.unread - a.unread) || b.last.date.localeCompare(a.last.date));
-  }
-
-  function markConversationRead(id) {
-    const inbox = loadInbox();
-    inbox.readAt[id] = now();
-    saveInbox(inbox);
-  }
-
-  // Claire answers: the demo client receives it in /messages; fictional ones stay here
-  function sendFromSales(conv, text) {
-    if (conv.demo) {
-      const about = conv.lead ? { type: "project", id: conv.lead.project.id, label: conv.lead.project.name } : null;
-      window.AtelierMessages.addSales(text, about);
-    } else {
-      const inbox = loadInbox();
-      inbox.added.push({ id: `s-${Date.now()}`, conv: conv.id, from: "sales", text, date: now() });
-      saveInbox(inbox);
-    }
-    if (conv.lead) addAction(conv.lead.id, "message", text); // "Message envoyé" in the lead history
-    markConversationRead(conv.id);
+  const markConversationRead = (id) => AtelierData.markRead(id);
+  async function sendFromSales(conversation, text) {
+    await AtelierData.send(conversation.id, text);
   }
 
   const unreadConversationCount = () => conversations().filter((c) => c.unread).length;
