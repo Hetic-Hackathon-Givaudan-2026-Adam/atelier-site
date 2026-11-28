@@ -38,6 +38,8 @@ window.AtelierStore = (() => {
     listProjects: () => AtelierData.projects(),
     find: (id) => AtelierData.projects().find((p) => p.id === id) || null,
     saveProject: (project) => AtelierData.saveProject(project),
+    usualConstraints: () => AtelierData.preference("usualConstraints", null),
+    saveUsualConstraints: (items) => AtelierData.savePreference("usualConstraints", items),
     orders: () => AtelierData.preference("orders"),
     rejectedBlends: () => AtelierData.preference("rejected"),
     rejectBlend(name) {

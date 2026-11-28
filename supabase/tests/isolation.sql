@@ -28,6 +28,30 @@ SELECT pg_temp.assert_true((SELECT count(*) FROM public.briefs) = 1, 'brief pers
 SELECT pg_temp.assert_true((SELECT count(*) FROM public.recommendations) = 1, 'recommandation persistée');
 SELECT public.atelier_save_preference('orders', '[{"number":"test"}]');
 SELECT public.atelier_save_preference('rejected', '["Composition 1"]');
+UPDATE public.profiles SET first_name = 'Alicia', last_name = 'Test',
+    company = 'Atelier Test', full_name = 'Alicia Test' WHERE id = auth.uid();
+SELECT pg_temp.assert_true((SELECT first_name = 'Alicia' FROM public.profiles WHERE id = auth.uid()), 'profil modifié');
+SELECT public.atelier_save_preference('usualConstraints', '[]');
+SELECT pg_temp.assert_true((SELECT data->'usualConstraints' = '[]'::jsonb FROM public.atelier_preferences), 'liste vide explicite');
+INSERT INTO public.atelier_data_requests(categories) VALUES (ARRAY['account','messages']);
+SELECT pg_temp.assert_true((SELECT owner = auth.uid() AND status = 'pending' AND created_at IS NOT NULL
+    FROM public.atelier_data_requests), 'demande horodatée et attribuée');
+DO $$
+BEGIN
+    BEGIN
+        UPDATE public.atelier_data_requests SET status = 'completed';
+        RAISE EXCEPTION 'Statut modifié par le client';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.atelier_data_requests (owner, categories)
+        VALUES ('10000000-0000-0000-0000-000000000002', ARRAY['account']);
+        RAISE EXCEPTION 'Propriétaire forgé';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
+
 SELECT pg_temp.assert_true((SELECT data ? 'orders' AND data ? 'rejected' FROM public.atelier_preferences), 'préférences fusionnées');
 INSERT INTO public.project_messages (project_id, sender_id, sender_role, content) VALUES
 ('20000000-0000-0000-0000-000000000001', auth.uid(), 'client', 'Bonjour');
@@ -58,6 +82,8 @@ SELECT pg_temp.assert_true((SELECT count(*) FROM public.briefs) = 0, 'briefs iso
 SELECT pg_temp.assert_true((SELECT count(*) FROM public.recommendations) = 0, 'recommandations isolées');
 SELECT pg_temp.assert_true((SELECT count(*) FROM public.project_messages) = 0, 'messages isolés');
 SELECT pg_temp.assert_true((SELECT count(*) FROM public.atelier_preferences) = 0, 'préférences isolées');
+SELECT pg_temp.assert_true((SELECT count(*) FROM public.atelier_data_requests) = 0, 'demandes isolées');
+SELECT pg_temp.assert_true((SELECT count(*) FROM public.profiles WHERE first_name = 'Alicia') = 0, 'profils isolés');
 DO $$
 BEGIN
     BEGIN

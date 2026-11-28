@@ -24,11 +24,8 @@
    projectState also carries projectId / projectName / blends / favorite
    when an existing project is resumed. "message" may contain *italic* words.
 
-   When the local RAG API answers (js/api.js → POST /atelier/chat), its turn
-   is returned as is (same shape; blends may also carry toConfirm,
-   technicalName; a reveal with noMatch: true has no blends → expert path).
-   Otherwise simulatedTurn() — the scripted engine below, reading
-   js/scenario.js with simple keyword detection — answers.
+   FastAPI supplies live turns. Saved profile preferences preselect the
+   requirements chips when a project is created.
    ========================================================= */
 (() => {
   "use strict";
@@ -178,12 +175,21 @@
     return list.map(({ liked: _old, ...b }) => (liked[b.name] ? { ...b, liked: liked[b.name] } : b));
   }
   // requirements shared by at least 2 of the client's projects
-  function usualConstraints() {
+  function inferredConstraints() {
     const count = {};
     clientProjects().forEach((p) => ((p.brief && p.brief.constraints) || []).forEach((c) => {
       if (c !== "Aucune") count[c] = (count[c] || 0) + 1;
     }));
     return Object.keys(count).filter((c) => count[c] >= 2);
+  }
+  // the requirements edited by the client in Mon profil, or null when never edited
+  function profileConstraints() {
+    return window.AtelierStore?.usualConstraints() ?? null;
+  }
+  // Mon profil wins over the history (an empty list = no pre-selection)
+  function usualConstraints() {
+    const own = profileConstraints();
+    return own || inferredConstraints();
   }
 
   /* Blends the client said "ne convient pas" to (Mes commandes → sample
@@ -557,14 +563,7 @@
     const next = { ...s, ...updates };
     const nextStep = SC.order[SC.order.indexOf(s.step) + 1] || "reveal";
     const turn = ask(nextStep, next, { projectUpdates: updates });
-    if (nextStep === "constraints" && s.existingClient) {
-      // usual requirements of a returning client, pre-selected (can be unselected)
-      const usual = usualConstraints();
-      if (usual.length) {
-        turn.selected = usual;
-        turn.hint = "Pré-sélectionné comme pour vos projets précédents.";
-      }
-    }
+    if (nextStep === "constraints") preselectUsual(turn, s);
     if (nextStep === "reveal") {
       // a resumed project whose brief was edited gets its own proposed blends again;
       // a new project gets the blends of its olfactory direction
@@ -574,9 +573,15 @@
     return turn;
   }
 
-  /* Point d’entrée de la conversation connectée. */
   async function getAssistantTurn(projectState, userInput) {
-    return AtelierAPI.chat(projectState, userInput);
+    const turn = await AtelierAPI.chat(projectState, userInput);
+    const usual = profileConstraints();
+    if (turn?.step === "constraints" && usual) {
+      turn.selected = usual.filter((item) => turn.chips?.includes(item));
+      if (turn.selected.length) turn.hint = "Pré-sélectionné d'après vos habitudes (Mon profil).";
+      else delete turn.hint;
+    }
+    return turn;
   }
 
   /* answer lists of one brief field, for the review card of an imported brief
@@ -600,5 +605,7 @@
     getAssistantTurn, simulatedTurn, projectName, blends: SC.blends,
     // helpers for the brief import review (later: returned by the RAG API)
     fieldChoices, notesFor: (ambiance) => notesFor(ambiance || []), potentialOf,
+    // Mon profil → "Mes habitudes"
+    inferredConstraints, usualConstraints, constraintChips: () => SC.steps.constraints.chips.filter((c) => c !== "Aucune"),
   };
 })();

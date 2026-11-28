@@ -5,8 +5,9 @@
   const KEY = "givaudanAtelier.session";
   const NEXT_KEY = "atelierNext"; // destination kept in sessionStorage across the login page
   const REORDER_KEY = "atelierOpenReorder"; // "1" → open the reorder modal on Mes commandes
+  const DELETED_KEY = "atelierAccountDeleted"; // "1" → "Votre compte a été supprimé." on the next page
   // only these pages are accepted as a post-login destination (no open redirect)
-  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "brief", "espace-commercial", "commercial-messages"];
+  const NEXT_PAGES = ["mes-projets", "commandes", "creer-projet", "messages", "brief", "profil", "espace-commercial", "commercial-messages"];
   const DEFAULT_NEXT = "mes-projets";
 
   // "creer-projet", "/creer-projet", "creer-projet.html" → "creer-projet"; anything else → null
@@ -17,19 +18,16 @@
   };
 
   let currentSession = null;
+  let loggingOut = false;
 
   const read = () => currentSession;
 
   async function loadSession() {
-    currentSession = null;
-
     try {
-
-
-      if (!supabaseClient) return null;
+      if (!supabaseClient) return (currentSession = null);
       const { data, error } = await supabaseClient.auth.getUser();
 
-      if (error || !data.user) return null;
+      if (error || !data.user) return (currentSession = null);
 
       const user = data.user;
 
@@ -48,11 +46,12 @@
       currentSession = {
         id: user.id,
         email: user.email,
-        firstName: metadata.first_name || names[0] || "Client",
-        lastName: metadata.last_name || names.slice(1).join(" ") || "Atelier",
-        company: metadata.company || "Entreprise non renseignée",
+        pendingEmail: user.new_email || "",
+        firstName: profile.first_name ?? (metadata.first_name || names[0] || "Client"),
+        lastName: profile.last_name ?? (metadata.last_name || names.slice(1).join(" ") || "Atelier"),
+        company: profile.company ?? (metadata.company || ""),
         role: profile.role,
-        existingClient: false,
+        existingClient: metadata.existing_client_claim === true,
         since: Date.now()
       };
 
@@ -60,7 +59,7 @@
 
     } catch (error) {
       console.error("Erreur session Supabase :", error.message);
-      return null;
+      return (currentSession = null);
     }
   }
 
@@ -71,23 +70,41 @@
 
     login: loadSession,
 
-    update(patch) {
-      if (!currentSession) return null;
+    async saveProfile({ firstName, lastName, company }) {
+      const id = read().id;
+      const { data, error } = await supabaseClient.from("profiles").update({
+        first_name: firstName, last_name: lastName, company,
+        full_name: `${firstName} ${lastName}`,
+      }).eq("id", id).select("id").single();
+      if (error) throw error;
+      if (read()?.id !== data.id) return;
+      Object.assign(read(), { firstName, lastName, company });
+      paintAccount(read());
+    },
 
-      if (typeof patch.existingClient === "boolean") {
-        currentSession.existingClient = patch.existingClient;
-      }
+    flagDeleted() {
+      try { sessionStorage.setItem(DELETED_KEY, "1"); } catch (_) { /* storage blocked */ }
+    },
 
-      return currentSession;
+    async finishDeletion() {
+      currentSession = null;
+      api.rememberNext(null);
+      api.rememberIntent(null);
+      api.flagDeleted();
+      try { await supabaseClient.auth.signOut({ scope: "local" }); }
+      finally { location.replace("./"); }
     },
 
     async logout() {
-      const { error } = await supabaseClient.auth.signOut();
-
-      if (error) throw error;
-
-      currentSession = null;
-      localStorage.removeItem(KEY);
+      loggingOut = true;
+      try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+        currentSession = null;
+        try { localStorage.removeItem(KEY); } catch (_) { /* storage blocked */ }
+      } finally {
+        loggingOut = false;
+      }
     },
 
     safeNext(value) {
@@ -167,7 +184,7 @@
     if (event === "SIGNED_OUT") {
       const wasSignedIn = Boolean(currentSession);
       currentSession = null;
-      if (protectedPage && wasSignedIn) {
+      if (protectedPage && wasSignedIn && !loggingOut) {
         document.documentElement.style.visibility = "hidden";
         setTimeout(() => location.replace("connexion"), 0);
       }
@@ -179,7 +196,40 @@
   });
 
   /* ---------------- Header ---------------- */
+  // Refresh the account menu after a profile edit.
+  function paintAccount(s) {
+    const account = document.querySelector(".site-header .account");
+    if (!account || !s) return;
+    const name = `${s.firstName} ${s.lastName}`;
+    account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
+    account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
+    account.querySelector(".account-name").textContent = name;
+    account.querySelector(".account-status").textContent = { client: s.existingClient ? "Client Givaudan" : "Nouveau client", commercial: "Commercial", admin: "Administrateur" }[s.role];
+  }
+
+  // after "Supprimer mon compte": a short message on the home page (self-styled,
+  // since the home page has no toast of its own)
+  function showDeletedNotice() {
+    let flagged = false;
+    try {
+      flagged = sessionStorage.getItem(DELETED_KEY) === "1";
+      sessionStorage.removeItem(DELETED_KEY);
+    } catch (_) { /* storage blocked */ }
+    if (!flagged) return;
+    const note = document.createElement("p");
+    note.setAttribute("role", "status");
+    note.textContent = "Votre compte a été supprimé.";
+    note.style.cssText = "position:fixed;left:50%;bottom:28px;z-index:200;margin:0;padding:12px 22px;transform:translateX(-50%);"
+      + "background:#f7f6f3;color:#141414;border:1px solid rgba(20,20,20,.1);border-radius:999px;"
+      + "box-shadow:0 22px 48px -26px rgba(20,20,20,.4);font-family:var(--font-display,serif);font-size:1.05rem;"
+      + "white-space:nowrap;transition:opacity .5s ease;";
+    document.body.append(note);
+    setTimeout(() => { note.style.opacity = "0"; }, 3600);
+    setTimeout(() => note.remove(), 4200);
+  }
+
   function renderHeader() {
+    showDeletedNotice();
     const s = read();
     const hasModal = Boolean(document.getElementById("auth-modal"));
 
@@ -237,15 +287,13 @@
             <span class="account-status"></span>
           </span>
         </div>
-        <a href="#" class="account-item">Mon profil</a>
+        <a href="profil" class="account-item">Mon profil</a>
         <button type="button" class="account-item" data-logout>Se déconnecter</button>
       </div>`;
-    const name = `${s.firstName} ${s.lastName}`;
-    account.querySelectorAll(".avatar-initials").forEach((el) => { el.textContent = api.initials(s); });
-    account.querySelector(".avatar-btn .sr-only").textContent = `Mon compte : ${name}`;
-    account.querySelector(".account-name").textContent = name;
-    account.querySelector(".account-status").textContent = { client: "Espace client", commercial: "Commercial", admin: "Administrateur" }[s.role];
+    if (s.role !== "client") account.querySelector('a[href="profil"]').remove();
+    if (s.role === "client" && /\/profil(\.html)?$/.test(location.pathname)) account.querySelector('a[href="profil"]').setAttribute("aria-current", "page");
     signIn.replaceWith(account);
+    paintAccount(s);
     document.documentElement.classList.add("is-logged-in");
 
     const btn = account.querySelector(".avatar-btn");

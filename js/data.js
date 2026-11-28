@@ -90,10 +90,11 @@ window.AtelierData = (() => {
   }
 
   function savePreference(key, data) {
-    preferences = { ...preferences, [key]: data };
+    if (key !== "usualConstraints") preferences = { ...preferences, [key]: data };
     const snapshot = structuredClone(data);
     writes = writes.catch(() => {}).then(async () => {
       value(await supabaseClient.rpc("atelier_save_preference", { pref: key, items: snapshot }));
+      if (key === "usualConstraints") preferences = { ...preferences, [key]: snapshot };
     });
     writes.catch(report);
     return writes;
@@ -102,7 +103,7 @@ window.AtelierData = (() => {
   return {
     get ready() { return loading ||= load().catch((error) => { report(error); return false; }); },
     load, report, saveProject, send, markRead, value, savePreference,
-    preference: (key) => structuredClone(preferences[key] || []),
+    preference: (key, fallback = []) => structuredClone(preferences[key] ?? fallback),
     projects: () => projects,
     messages: () => messages,
   };

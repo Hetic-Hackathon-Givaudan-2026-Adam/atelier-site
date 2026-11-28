@@ -34,6 +34,12 @@ window.AtelierAPI = (() => {
     body: JSON.stringify({ project: id, expected_revision: revision, snapshot }),
   }, 15000);
 
+  api.deleteAccount = async (password) => request("/atelier/account/delete", {
+    method: "POST",
+    headers: { ...await token(), "Content-Type": "application/json" },
+    body: JSON.stringify({ password, confirm: true }),
+  }, 20000);
+
   api.importBrief = async (file) => {
     const body = new FormData();
     body.append("file", file, file.name);

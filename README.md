@@ -44,7 +44,7 @@ Pour tester avec une autre adresse : `localStorage.setItem("atelierApiUrl", "htt
 
 | Dossier / fichier | Contenu |
 |---|---|
-| `*.html` | Les pages : accueil, connexion, créer un projet, mes projets, commandes, messages, espace commercial |
+| `*.html` | Les pages : accueil, connexion, créer un projet, mes projets, commandes, messages, mon profil, espace commercial |
 | `js/` | Un fichier par page, plus `api.js` (client de l'API), `assistant.js` (moteur simulé), `store.js` (données locales) |
 | `css/` | Styles, un fichier par page plus `style.css` commun |
 | `frames/`, `video.mp4` | Animation de la page d'accueil |
@@ -52,3 +52,9 @@ Pour tester avec une autre adresse : `localStorage.setItem("atelierApiUrl", "htt
 ## Équipe
 
 À compléter
+
+## Déployer Mon profil
+
+Appliquer les scripts Supabase manquants dans l’ordre, jusqu’à `supabase/08_profile_integration.sql`.
+Configurer la redirection `/profil` dans Supabase Auth pour les confirmations de changement d’adresse.
+Le backend doit disposer de `SUPABASE_SERVICE_ROLE_KEY` dans son environnement pour activer la suppression de compte.
